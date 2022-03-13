@@ -28,6 +28,7 @@ import org.scijava.Cancelable;
 import org.scijava.Named;
 import org.scijava.util.VersionUtils;
 
+import fiji.plugin.vollseg_kymo.Model;
 import net.imglib2.algorithm.Benchmark;
 import net.imglib2.algorithm.MultiThreaded;
 
@@ -53,6 +54,8 @@ public class Mtrack_vollseg_kymo implements Benchmark, MultiThreaded,  Named, Ca
 	 * The model this Mtrack_vollseg_kymo will shape.
 	 */
 
+	protected final Model model;
+	
 	protected long processingTime;
 
 	protected String errorMessage;
@@ -75,10 +78,16 @@ public class Mtrack_vollseg_kymo implements Benchmark, MultiThreaded,  Named, Ca
 
 	public Mtrack_vollseg_kymo()
 	{
-		
+		this( new Model() );
 	}
 
-	
+	public Mtrack_vollseg_kymo( final Model model )
+	{
+		this.model = model;
+		name = PLUGIN_NAME_STR + "_v" + PLUGIN_NAME_VERSION;
+		name += "_[" + Integer.toHexString( hashCode() ) + "]";
+	}
+
 	
 	@Override
 	public int getNumThreads()

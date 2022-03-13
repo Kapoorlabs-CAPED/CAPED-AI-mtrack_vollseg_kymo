@@ -53,7 +53,7 @@ public class SpotUtil
 			return neighborhood;
 	}
 
-	public static final < T extends RealType< T > > IterableInterval< T > iterable( final Spot spot, final ImgPlus< T > img )
+	public static final < T extends RealType< T > > IterableInterval< T > iterable( final Stat spot, final ImgPlus< T > img )
 	{
 		// Prepare neighborhood
 		final SpotRoi roi = spot.getRoi();

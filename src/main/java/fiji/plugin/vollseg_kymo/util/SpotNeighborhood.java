@@ -53,20 +53,20 @@ public class SpotNeighborhood< T extends RealType< T >> implements Neighborhood<
 	 * CONSTRUCTOR
 	 */
 
-	public SpotNeighborhood( final Spot spot, final ImgPlus< T > img )
+	public SpotNeighborhood( final Stat spot, final ImgPlus< T > img )
 	{
 		this.calibration = TMUtils.getSpatialCalibration( img );
 		// Center
 		this.center = new long[ img.numDimensions() ];
 		for ( int d = 0; d < center.length; d++ )
 		{
-			center[ d ] = Math.round( spot.getFeature( Spot.POSITION_FEATURES[ d ] ).doubleValue() / calibration[ d ] );
+			center[ d ] = Math.round( spot.getFeature( Stat.POSITION_FEATURES[ d ] ).doubleValue() / calibration[ d ] );
 		}
 		// Span
 		final long[] span = new long[ img.numDimensions() ];
 		for ( int d = 0; d < span.length; d++ )
 		{
-			span[ d ] = Math.round( spot.getFeature( Spot.RADIUS ) / calibration[ d ] );
+			span[ d ] = Math.round( spot.getFeature( Stat.RADIUS ) / calibration[ d ] );
 		}
 
 		// Neighborhood

@@ -321,11 +321,11 @@ public class TMUtils
 	 * Store the x, y, z coordinates of the specified spot in the first 3
 	 * elements of the specified double array.
 	 */
-	public static final void localize( final Spot spot, final double[] coords )
+	public static final void localize( final Stat spot, final double[] coords )
 	{
-		coords[ 0 ] = spot.getFeature( Spot.POSITION_X ).doubleValue();
-		coords[ 1 ] = spot.getFeature( Spot.POSITION_Y ).doubleValue();
-		coords[ 2 ] = spot.getFeature( Spot.POSITION_Z ).doubleValue();
+		coords[ 0 ] = spot.getFeature( Stat.POSITION_X ).doubleValue();
+		coords[ 1 ] = spot.getFeature( Stat.POSITION_Y ).doubleValue();
+		coords[ 2 ] = spot.getFeature( Stat.POSITION_Z ).doubleValue();
 	}
 
 	/**

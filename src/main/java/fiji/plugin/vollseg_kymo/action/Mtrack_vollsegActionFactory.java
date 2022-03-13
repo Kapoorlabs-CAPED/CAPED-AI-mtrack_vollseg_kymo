@@ -23,7 +23,7 @@ package fiji.plugin.vollseg_kymo.action;
 
 import fiji.plugin.trackmate.TrackMateModule;
 
-public interface TrackMateActionFactory extends TrackMateModule
+public interface Mtrack_vollsegActionFactory extends TrackMateModule
 {
 	public Mtrack_vollseg_kymoAction create();
 }

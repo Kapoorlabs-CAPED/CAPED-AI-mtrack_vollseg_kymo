@@ -228,8 +228,8 @@ public class CaptureOverlayAction extends AbstractTMAction
 		tc.pixelDepth = fc.pixelDepth;
 	}
 
-	@Plugin( type = TrackMateActionFactory.class )
-	public static class Factory implements TrackMateActionFactory
+	@Plugin( type = Mtrack_vollsegActionFactory.class )
+	public static class Factory implements Mtrack_vollsegActionFactory
 	{
 
 		@Override
