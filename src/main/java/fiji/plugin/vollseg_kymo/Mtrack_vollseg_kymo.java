@@ -33,12 +33,11 @@ import net.imglib2.algorithm.MultiThreaded;
 
 /**
  * <p>
- * The Mtrack_vollseg_kymo class runs on the currently active time-lapse image (2D or 3D)
- * and both identifies and tracks bright spots over time.
+ * The Mtrack_vollseg_kymo class runs on the directory of kymograph images in 2D
  * </p>
  *
  * <p>
- * <b>Required input:</b> A 2D or 3D time-lapse image with bright blobs.
+ * <b>Required input:</b> A direcotry of Kymograph images.
  * </p>
  *
  * @author V Kapoor
@@ -79,29 +78,7 @@ public class Mtrack_vollseg_kymo implements Benchmark, MultiThreaded,  Named, Ca
 		
 	}
 
-	/*
-	 * METHODS
-	 */
-
-
-
-	/*
-	 * PROCESSES
-	 */
-
-	/**
-	 * Calculate all features for all detected spots.
-	 * <p>
-	 * Features are calculated for each spot, using their location, and the raw
-	 * image. Features to be calculated and analyzers are taken from the
-	 * settings field of this object.
-	 *
-	 * @param doLogIt
-	 *            if <code>true</code>, the {@link Logger} of the model will be
-	 *            notified.
-	 * @return <code>true</code> if the calculation was performed successfully,
-	 *         <code>false</code> otherwise.
-	 */
+	
 	
 	@Override
 	public int getNumThreads()

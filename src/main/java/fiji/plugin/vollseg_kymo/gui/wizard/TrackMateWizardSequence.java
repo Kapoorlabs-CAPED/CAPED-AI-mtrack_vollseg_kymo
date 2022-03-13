@@ -30,21 +30,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import fiji.plugin.vollseg_kymo.action.AbstractTMAction;
 import javax.swing.AbstractAction;
 import fiji.plugin.vollseg_kymo.Logger;
-import fiji.plugin.vollseg_kymo.Load_ransac_fits;
+import fiji.plugin.vollseg_kymo.Mtrack_vollseg_kymo;
 import fiji.plugin.vollseg_kymo.gui.components.LogPanel;
-import fiji.plugin.vollseg_kymo.gui.wizard.descriptors.ActionChooserDescriptor;
-import fiji.plugin.vollseg_kymo.gui.wizard.descriptors.GrapherDescriptor;
-import fiji.plugin.vollseg_kymo.gui.wizard.descriptors.LogPanelDescriptor2;
-import fiji.plugin.vollseg_kymo.gui.wizard.descriptors.SaveDescriptor;
 import fiji.plugin.vollseg_kymo.gui.wizard.descriptors.StartDialogDescriptor;
 
 public class TrackMateWizardSequence implements WizardSequence
 {
 
-	private final Load_ransac_fits vollsegkymo;
+	private final Mtrack_vollseg_kymo vollsegkymo;
 
 
 	private WizardPanelDescriptor current;
@@ -55,27 +51,17 @@ public class TrackMateWizardSequence implements WizardSequence
 
 	private final Map< WizardPanelDescriptor, WizardPanelDescriptor > previous;
 
-	private final LogPanelDescriptor2 logDescriptor;
 
 
-	private final GrapherDescriptor grapherDescriptor;
 
-	private final ActionChooserDescriptor actionChooserDescriptor;
-
-	private final SaveDescriptor saveDescriptor;
-
-	public TrackMateWizardSequence( final Load_ransac_fits vollsegkymo )
+	public TrackMateWizardSequence( final Mtrack_vollseg_kymo vollsegkymo )
 	{
 		this.vollsegkymo = vollsegkymo;
 
 		final LogPanel logPanel = new LogPanel();
 		final Logger logger = logPanel.getLogger();
 
-		logDescriptor = new LogPanelDescriptor2( logPanel );
 		startDialogDescriptor = new StartDialogDescriptor( logger );
-		grapherDescriptor = new GrapherDescriptor( vollsegkymo );
-		actionChooserDescriptor = new ActionChooserDescriptor( new ActionProvider(), vollsegkymo, selectionModel, displaySettings );
-		saveDescriptor = new SaveDescriptor( trackmate, displaySettings, this );
 
 		this.next = getForwardSequence();
 		this.previous = getBackwardSequence();
@@ -85,19 +71,15 @@ public class TrackMateWizardSequence implements WizardSequence
 	@Override
 	public void onClose()
 	{
-		trackmate.getModel().setLogger( Logger.IJ_LOGGER );
+		
 	}
 
 	@Override
 	public WizardPanelDescriptor next()
 	{
-		if ( current == chooseDetectorDescriptor )
-			getDetectorConfigDescriptor();
+		
 
-		if ( current == chooseTrackerDescriptor )
-			getTrackerConfigDescriptor();
-
-		current = next.get( current );
+		current = startDialogDescriptor;
 		return current;
 	}
 
@@ -105,20 +87,16 @@ public class TrackMateWizardSequence implements WizardSequence
 	@Override
 	public WizardPanelDescriptor previous()
 	{
-		if ( current == trackFilterDescriptor )
-			getTrackerConfigDescriptor();
+		
 
-		if ( current == spotFilterDescriptor )
-			getDetectorConfigDescriptor();
-
-		current = previous.get( current );
+		current = startDialogDescriptor;
 		return current;
 	}
 
 	@Override
 	public boolean hasNext()
 	{
-		return current != actionChooserDescriptor;
+		return false;
 	}
 
 	@Override
@@ -131,20 +109,15 @@ public class TrackMateWizardSequence implements WizardSequence
 	@Override
 	public WizardPanelDescriptor logDescriptor()
 	{
-		return logDescriptor;
+		return null;
 	}
 
 	@Override
 	public WizardPanelDescriptor configDescriptor()
 	{
-		return configureViewsDescriptor;
+		return null;
 	}
 
-	@Override
-	public WizardPanelDescriptor save()
-	{
-		return saveDescriptor;
-	}
 
 	@Override
 	public boolean hasPrevious()
@@ -155,240 +128,35 @@ public class TrackMateWizardSequence implements WizardSequence
 	private Map< WizardPanelDescriptor, WizardPanelDescriptor > getBackwardSequence()
 	{
 		final Map< WizardPanelDescriptor, WizardPanelDescriptor > map = new HashMap<>();
-		map.put( startDialogDescriptor, null );
-		map.put( chooseDetectorDescriptor, startDialogDescriptor );
-		map.put( chooseTrackerDescriptor, spotFilterDescriptor );
-		map.put( configureViewsDescriptor, trackFilterDescriptor );
-		map.put( grapherDescriptor, configureViewsDescriptor );
-		map.put( actionChooserDescriptor, grapherDescriptor );
+		map.put( startDialogDescriptor, startDialogDescriptor );
 		return map;
 	}
 
 	private Map< WizardPanelDescriptor, WizardPanelDescriptor > getForwardSequence()
 	{
 		final Map< WizardPanelDescriptor, WizardPanelDescriptor > map = new HashMap<>();
-		map.put( startDialogDescriptor, chooseDetectorDescriptor );
-		map.put( executeDetectionDescriptor, initFilterDescriptor );
-		map.put( initFilterDescriptor, spotFilterDescriptor );
-		map.put( spotFilterDescriptor, chooseTrackerDescriptor );
-		map.put( executeTrackingDescriptor, trackFilterDescriptor );
-		map.put( trackFilterDescriptor, configureViewsDescriptor );
-		map.put( configureViewsDescriptor, grapherDescriptor );
-		map.put( grapherDescriptor, actionChooserDescriptor );
+		map.put( startDialogDescriptor, startDialogDescriptor );
 		return map;
 	}
 
 	@Override
 	public void setCurrent( final String panelIdentifier )
 	{
-		if ( panelIdentifier.equals( SpotDetectorDescriptor.KEY ) )
-		{
-			current = getDetectorConfigDescriptor();
+			current = startDialogDescriptor;
 			return;
-		}
-
-		if ( panelIdentifier.equals( SpotTrackerDescriptor.KEY ) )
-		{
-			current = getTrackerConfigDescriptor();
-			return;
-		}
-
-		if ( panelIdentifier.equals( InitFilterDescriptor.KEY ) )
-		{
-			getDetectorConfigDescriptor();
-			current = initFilterDescriptor;
-			return;
-		}
-
-		final List< WizardPanelDescriptor > descriptors = Arrays.asList( new WizardPanelDescriptor[] {
-				logDescriptor,
-				chooseDetectorDescriptor,
-				executeDetectionDescriptor,
-				initFilterDescriptor,
-				spotFilterDescriptor,
-				chooseTrackerDescriptor,
-				executeTrackingDescriptor,
-				trackFilterDescriptor,
-				configureViewsDescriptor,
-				grapherDescriptor,
-				actionChooserDescriptor,
-				saveDescriptor
-		} );
-		for ( final WizardPanelDescriptor w : descriptors )
-		{
-			if ( w.getPanelDescriptorIdentifier().equals( panelIdentifier ) )
-			{
-				current = w;
-				break;
-			}
-		}
 	}
 
-	/**
-	 * Determines and registers the descriptor used to configure the detector
-	 * chosen in the {@link ChooseDetectorDescriptor}.
-	 *
-	 * @return a suitable {@link SpotDetectorDescriptor}.
-	 */
-	private SpotDetectorDescriptor getDetectorConfigDescriptor()
-	{
-		final SpotDetectorFactoryBase< ? > detectorFactory = trackmate.getSettings().detectorFactory;
-
-		/*
-		 * Special case: are we dealing with the manual detector? If yes, no
-		 * config, no detection.
-		 */
-		if ( detectorFactory.getKey().equals( ManualDetectorFactory.DETECTOR_KEY ) )
-		{
-			// Position sequence next and previous.
-			next.put( chooseDetectorDescriptor, spotFilterDescriptor );
-			previous.put( spotFilterDescriptor, chooseDetectorDescriptor );
-			previous.put( executeDetectionDescriptor, chooseDetectorDescriptor );
-			previous.put( initFilterDescriptor, chooseDetectorDescriptor );
-			return null;
-		}
-
-		/*
-		 * Copy as much settings as we can to the potentially new config
-		 * descriptor.
-		 */
-		// From settings.
-		final Map< String, Object > oldSettings1 = new HashMap<>( trackmate.getSettings().detectorSettings );
-		// From previous panel.
-		final Map< String, Object > oldSettings2 = new HashMap<>();
-		final WizardPanelDescriptor previousDescriptor = next.get( chooseDetectorDescriptor );
-		if ( previousDescriptor != null && previousDescriptor instanceof SpotDetectorDescriptor )
-		{
-			final SpotDetectorDescriptor previousSpotDetectorDescriptor = ( SpotDetectorDescriptor ) previousDescriptor;
-			final ConfigurationPanel detectorConfigPanel = ( ConfigurationPanel ) previousSpotDetectorDescriptor.targetPanel;
-			oldSettings2.putAll( detectorConfigPanel.getSettings() );
-		}
-
-		final Map< String, Object > defaultSettings = detectorFactory.getDefaultSettings();
-		for ( final String skey : defaultSettings.keySet() )
-		{
-			Object previousValue = oldSettings2.get( skey );
-			if ( previousValue == null )
-				previousValue = oldSettings1.get( skey );
-
-			defaultSettings.put( skey, previousValue );
-		}
-
-		final ConfigurationPanel detectorConfigurationPanel = detectorFactory.getDetectorConfigurationPanel( trackmate.getSettings(), trackmate.getModel() );
-		detectorConfigurationPanel.setSettings( defaultSettings );
-		trackmate.getSettings().detectorSettings = defaultSettings;
-		final SpotDetectorDescriptor configDescriptor = new SpotDetectorDescriptor( trackmate.getSettings(), detectorConfigurationPanel, trackmate.getModel().getLogger() );
-
-		// Position sequence next and previous.
-		next.put( chooseDetectorDescriptor, configDescriptor );
-		next.put( configDescriptor, executeDetectionDescriptor );
-		previous.put( configDescriptor, chooseDetectorDescriptor );
-		previous.put( executeDetectionDescriptor, configDescriptor );
-		previous.put( initFilterDescriptor, configDescriptor );
-		previous.put( spotFilterDescriptor, configDescriptor );
-
-		return configDescriptor;
-	}
-
-	/**
-	 * Determines and registers the descriptor used to configure the tracker
-	 * chosen in the {@link ChooseTrackerDescriptor}.
-	 *
-	 * @return a suitable {@link SpotTrackerDescriptor}.
-	 */
-	private SpotTrackerDescriptor getTrackerConfigDescriptor()
-	{
-		final SpotTrackerFactory trackerFactory = trackmate.getSettings().trackerFactory;
-
-		/*
-		 * Special case: are we dealing with the manual tracker? If yes, no
-		 * config, no detection.
-		 */
-		if ( trackerFactory.getKey().equals( ManualTrackerFactory.TRACKER_KEY ) )
-		{
-			// Position sequence next and previous.
-			next.put( chooseTrackerDescriptor, trackFilterDescriptor );
-			previous.put( executeTrackingDescriptor, chooseTrackerDescriptor );
-			previous.put( trackFilterDescriptor, chooseTrackerDescriptor );
-			return null;
-		}
-		/*
-		 * Copy as much settings as we can to the potentially new config
-		 * descriptor.
-		 */
-		// From settings.
-		final Map< String, Object > oldSettings1 = new HashMap<>( trackmate.getSettings().trackerSettings );
-		// From previous panel.
-		final Map< String, Object > oldSettings2 = new HashMap<>();
-		final WizardPanelDescriptor previousDescriptor = next.get( chooseTrackerDescriptor );
-		if ( previousDescriptor != null && previousDescriptor instanceof SpotTrackerDescriptor )
-		{
-			final SpotTrackerDescriptor previousTrackerDetectorDescriptor = ( SpotTrackerDescriptor ) previousDescriptor;
-			final ConfigurationPanel detectorConfigPanel = ( ConfigurationPanel ) previousTrackerDetectorDescriptor.targetPanel;
-			oldSettings2.putAll( detectorConfigPanel.getSettings() );
-		}
-
-		final Map< String, Object > defaultSettings = trackerFactory.getDefaultSettings();
-		for ( final String skey : defaultSettings.keySet() )
-		{
-			Object previousValue = oldSettings2.get( skey );
-			if ( previousValue == null )
-				previousValue = oldSettings1.get( skey );
-
-			defaultSettings.put( skey, previousValue );
-		}
-
-		final ConfigurationPanel trackerConfigurationPanel = trackerFactory.getTrackerConfigurationPanel( trackmate.getModel() );
-		trackerConfigurationPanel.setSettings( defaultSettings );
-		trackmate.getSettings().trackerSettings = defaultSettings;
-		final SpotTrackerDescriptor configDescriptor = new SpotTrackerDescriptor( trackmate.getSettings(), trackerConfigurationPanel, trackmate.getModel().getLogger() );
-
-		// Position sequence next and previous.
-		next.put( chooseTrackerDescriptor, configDescriptor );
-		next.put( configDescriptor, executeTrackingDescriptor );
-		previous.put( configDescriptor, chooseTrackerDescriptor );
-		previous.put( executeTrackingDescriptor, configDescriptor );
-		previous.put( trackFilterDescriptor, configDescriptor );
-		
-		return configDescriptor;
-	}
+	
 
 	private static final String TRACK_TABLES_BUTTON_TOOLTIP = "<html>"
-			+ "Export the features of all tracks, edges and all <br>"
-			+ "spots belonging to a track to ImageJ tables."
+			+ "Export the features of all kymographs <br>"
+			+ "k to ImageJ tables."
 			+ "</html>";
 
 	private static final String SPOT_TABLE_BUTTON_TOOLTIP = "Export the features of all spots to ImageJ tables.";
 
-	private static final String TRACKSCHEME_BUTTON_TOOLTIP = "<html>Launch a new instance of TrackScheme.</html>";
 
-	private class LaunchTrackSchemeAction extends AbstractAction
-	{
-		private static final long serialVersionUID = 1L;
-
-		private LaunchTrackSchemeAction()
-		{
-			super( "TrackScheme", TRACK_SCHEME_ICON_16x16 );
-			putValue( SHORT_DESCRIPTION, TRACKSCHEME_BUTTON_TOOLTIP );
-		}
-
-		@Override
-		public void actionPerformed( final ActionEvent e )
-		{
-			new Thread( "Launching TrackScheme thread" )
-			{
-				@Override
-				public void run()
-				{
-					final TrackScheme trackscheme = new TrackScheme( trackmate.getModel(), selectionModel, displaySettings );
-					final SpotImageUpdater thumbnailUpdater = new SpotImageUpdater( trackmate.getSettings() );
-					trackscheme.setSpotImageUpdater( thumbnailUpdater );
-					trackscheme.render();
-				}
-			}.start();
-		}
-	}
-
+	
 	private class ShowTrackTablesAction extends AbstractAction
 	{
 		private static final long serialVersionUID = 1L;
@@ -425,19 +193,22 @@ public class TrackMateWizardSequence implements WizardSequence
 
 	private void showTables( final boolean showSpotTable )
 	{
-		new Thread( "TrackMate table thread." )
+		new Thread( "Vollseg table thread." )
 		{
 			@Override
 			public void run()
 			{
 				AbstractTMAction action;
-				if ( showSpotTable )
-					action = new ExportAllSpotsStatsAction();
-				else
-					action = new ExportStatsTablesAction();
+				action = new ExportStatsTablesAction();
 
-				action.execute( trackmate, selectionModel, displaySettings, null );
+				action.execute( vollsegkymo,  null );
 			}
 		}.start();
+	}
+
+	@Override
+	public WizardPanelDescriptor save() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
