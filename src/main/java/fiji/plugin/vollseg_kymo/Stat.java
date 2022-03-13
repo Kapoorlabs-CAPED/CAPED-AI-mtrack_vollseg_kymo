@@ -310,7 +310,7 @@ public class Stat extends AbstractEuclideanSpace implements Comparable<Stat> {
 	 * {@link #CATASTROPHE_FREQUENCY}, {@link #RESCUE_FREQUENCY} .
 	 */
 
-	public static int feature_numbers = 7;
+	public static int feature_numbers = 8;
 	public final static Collection<String> FEATURES = new ArrayList<>(feature_numbers);
 
 	/** The 7 privileged stat feature names. */
@@ -333,6 +333,7 @@ public class Stat extends AbstractEuclideanSpace implements Comparable<Stat> {
 		FEATURES.add(AVERAGE_SHRINK_RATE);
 		FEATURES.add(CATASTROPHE_FREQUENCY);
 		FEATURES.add(RESCUE_FREQUENCY);
+		FEATURES.add(NAME);
 		FEATURES.add(StatCollection.VISIBILITY);
 
 		FEATURE_NAMES.put(RATE, "R");
@@ -342,6 +343,7 @@ public class Stat extends AbstractEuclideanSpace implements Comparable<Stat> {
 		FEATURE_NAMES.put(AVERAGE_SHRINK_RATE, "Average_shrink_rate");
 		FEATURE_NAMES.put(CATASTROPHE_FREQUENCY, "Catastrophe_frequency");
 		FEATURE_NAMES.put(RESCUE_FREQUENCY, "Rescue_frequency");
+		FEATURE_NAMES.put(NAME, "NAME");
 		FEATURE_NAMES.put(VISIBILITY, "Visibility");
 
 		FEATURE_SHORT_NAMES.put(RATE, "R");
@@ -351,6 +353,7 @@ public class Stat extends AbstractEuclideanSpace implements Comparable<Stat> {
 		FEATURE_SHORT_NAMES.put(AVERAGE_SHRINK_RATE, "Average_shrink_rate");
 		FEATURE_SHORT_NAMES.put(CATASTROPHE_FREQUENCY, "Catastrophe_frequency");
 		FEATURE_SHORT_NAMES.put(RESCUE_FREQUENCY, "Rescue_frequency");
+		FEATURE_SHORT_NAMES.put(NAME, "NAME");
 		FEATURE_SHORT_NAMES.put(VISIBILITY, "Visibility");
 
 		FEATURE_DIMENSIONS.put(RATE, Dimension.RATE);
@@ -360,6 +363,7 @@ public class Stat extends AbstractEuclideanSpace implements Comparable<Stat> {
 		FEATURE_DIMENSIONS.put(AVERAGE_SHRINK_RATE, Dimension.AVERAGE_SHRINK_RATE);
 		FEATURE_DIMENSIONS.put(CATASTROPHE_FREQUENCY, Dimension.CATASTROPHE_FREQUENCY);
 		FEATURE_DIMENSIONS.put(RESCUE_FREQUENCY, Dimension.RESCUE_FREQUENCY);
+		FEATURE_DIMENSIONS.put(NAME, Dimension.NAME);
 		FEATURE_DIMENSIONS.put(VISIBILITY, Dimension.NONE);
 
 		IS_INT.put(RATE, Boolean.FALSE);
@@ -369,6 +373,7 @@ public class Stat extends AbstractEuclideanSpace implements Comparable<Stat> {
 		IS_INT.put(AVERAGE_SHRINK_RATE, Boolean.TRUE);
 		IS_INT.put(CATASTROPHE_FREQUENCY, Boolean.FALSE);
 		IS_INT.put(RESCUE_FREQUENCY, Boolean.FALSE);
+		IS_INT.put(NAME, Boolean.FALSE);
 		IS_INT.put(VISIBILITY, Boolean.TRUE);
 	}
 
