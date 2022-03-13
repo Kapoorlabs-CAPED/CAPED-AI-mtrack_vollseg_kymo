@@ -22,6 +22,8 @@
 package fiji.plugin.vollseg_kymo;
 
 import ij.IJ;
+import ij.ImagePlus;
+import ij.Prefs;
 import ij.measure.ResultsTable;
 import ij.plugin.PlugIn;
 
@@ -70,10 +72,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.util.ShapeUtils;
 import org.jfree.data.xy.XYSeriesCollection;
 
-import fiji.plugin.trackmate.SelectionModel;
-import fiji.plugin.trackmate.TrackMate;
-import fiji.plugin.vollseg_kymo.gui.displaysettings.DisplaySettings;
-import fiji.plugin.vollseg_kymo.gui.wizard.TrackMateWizardSequence;
+import fiji.plugin.vollseg_kymo.gui.wizard.Mtrack_vollseg_kymoWizardSequence;
 import fiji.plugin.vollseg_kymo.gui.wizard.WizardSequence;
 import fiji.plugin.vollseg_kymo.listeners.AutoCompileResultsListener;
 import fiji.plugin.vollseg_kymo.listeners.CatastrophyCheckBoxListener;
@@ -119,10 +118,27 @@ public class Load_ransac_fits implements PlugIn {
 	
 	
 	
-	
-	protected WizardSequence createSequence(   )
+	protected Mtrack_vollseg_kymo createMtrack_vollseg_kymo( final Model model )
 	{
-		return new Mtrack_vollseg_kymoWizardSequence(  );
+
+		final Mtrack_vollseg_kymo vollsegkymo = new Mtrack_vollseg_kymo( model );
+
+		vollsegkymo.setNumThreads( Prefs.getThreads() );
+
+		return vollsegkymo;
+	}
+	
+	protected Model createModel(  )
+	{
+		final Model model = new Model();
+		return model;
+	}
+	
+	
+	protected WizardSequence createSequence( final  Mtrack_vollseg_kymo vollsegkymo  )
+	{
+		
+		return new Mtrack_vollseg_kymoWizardSequence( vollsegkymo );
 	}
 	
 	public static int MIN_SLIDER = 0;
@@ -286,6 +302,22 @@ public class Load_ransac_fits implements PlugIn {
 
 	@Override
 	public void run(String arg) {
+		
+		
+		final Model model = createModel( );
+		final Mtrack_vollseg_kymo vollsegkymo = createMtrack_vollseg_kymo( model );
+		final WizardSequence sequence = createSequence( vollsegkymo);
+		final JFrame frame = sequence.run( "Mtrack_vollseg_kymo on " );
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		/* JFreeChart */
 		allrates = new ArrayList<Rateobject>();
 		averagerates = new ArrayList<Averagerate>();

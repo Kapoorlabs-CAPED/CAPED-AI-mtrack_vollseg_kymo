@@ -31,13 +31,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import fiji.plugin.vollseg_kymo.action.AbstractTMAction;
+import fiji.plugin.vollseg_kymo.action.ExportStatsTablesAction;
+
 import javax.swing.AbstractAction;
 import fiji.plugin.vollseg_kymo.Logger;
 import fiji.plugin.vollseg_kymo.Mtrack_vollseg_kymo;
 import fiji.plugin.vollseg_kymo.gui.components.LogPanel;
 import fiji.plugin.vollseg_kymo.gui.wizard.descriptors.StartDialogDescriptor;
 
-public class TrackMateWizardSequence implements WizardSequence
+public class Mtrack_vollseg_kymoWizardSequence implements WizardSequence
 {
 
 	private final Mtrack_vollseg_kymo vollsegkymo;
@@ -54,7 +56,7 @@ public class TrackMateWizardSequence implements WizardSequence
 
 
 
-	public TrackMateWizardSequence( final Mtrack_vollseg_kymo vollsegkymo )
+	public Mtrack_vollseg_kymoWizardSequence( final Mtrack_vollseg_kymo vollsegkymo )
 	{
 		this.vollsegkymo = vollsegkymo;
 
