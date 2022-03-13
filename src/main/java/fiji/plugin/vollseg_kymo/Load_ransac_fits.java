@@ -70,6 +70,11 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.util.ShapeUtils;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import fiji.plugin.trackmate.SelectionModel;
+import fiji.plugin.trackmate.TrackMate;
+import fiji.plugin.vollseg_kymo.gui.displaysettings.DisplaySettings;
+import fiji.plugin.vollseg_kymo.gui.wizard.TrackMateWizardSequence;
+import fiji.plugin.vollseg_kymo.gui.wizard.WizardSequence;
 import fiji.plugin.vollseg_kymo.listeners.AutoCompileResultsListener;
 import fiji.plugin.vollseg_kymo.listeners.CatastrophyCheckBoxListener;
 import fiji.plugin.vollseg_kymo.listeners.CompileRes;
@@ -110,6 +115,16 @@ import fiji.plugin.vollseg_kymo_functions.Tracking;
 import mpicbg.models.Point;
 
 public class Load_ransac_fits implements PlugIn {
+	
+	
+	
+	
+	
+	protected WizardSequence createSequence(   )
+	{
+		return new Mtrack_vollseg_kymoWizardSequence(  );
+	}
+	
 	public static int MIN_SLIDER = 0;
 	public static int MAX_SLIDER = 100;
 
@@ -296,7 +311,7 @@ public class Load_ransac_fits implements PlugIn {
 
 	}
 
-	public JFrame Cardframe = new JFrame("Welcome to Ransac velocity and Statistics Analyzer ");
+	public JFrame Cardframe = new JFrame("Welcome to MTrack_VollSeg_Kymo");
 	public JPanel panelCont = new JPanel();
 	public JPanel panelFirst = new JPanel();
 	public JPanel panelSecond = new JPanel();
