@@ -54,12 +54,13 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
-
+import fiji.plugin.vollseg_kymo.Stat;
 import fiji.plugin.vollseg_kymo.Dimension;
 import fiji.plugin.vollseg_kymo.util.FileChooser;
 import fiji.plugin.vollseg_kymo.util.FileChooser.DialogType;
 import fiji.plugin.vollseg_kymo.util.FileChooser.SelectionMode;
 import fiji.plugin.vollseg_kymo.util.TMUtils;
+import fiji.plugin.vollseg_kymo.Model;
 import fiji.plugin.vollseg_kymo.visualization.FeatureColorGenerator;
 import fiji.plugin.vollseg_kymo.visualization.TrackMateModelView;
 import fiji.plugin.vollseg_kymo.visualization.trackscheme.utils.SearchBar;
@@ -73,11 +74,10 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 
 	public static String selectedFile = System.getProperty( "user.home" ) + File.separator + "export.csv";
 
-
-	private final TablePanel< Double > growthTable;
-
-	private final TablePanel< Double > shrinkTable;
+	private final Model model;
 	
+	private final TablePanel< Double > rateTable;
+
 	private final TablePanel< Double > catfrequTable;
 	
 	private final TablePanel< Double > resfrequTable;
@@ -85,7 +85,7 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 	private final AtomicBoolean ignoreSelectionChange = new AtomicBoolean( false );
 
 
-	public TrackTableView(  )
+	public TrackTableView(final Model model  )
 	{
 		super( "Track tables" );
 		setIconImage( TRACKMATE_ICON.getImage() );
@@ -93,24 +93,22 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 		/*
 		 * GUI.
 		 */
-
+		this.model = model;
 		final JPanel mainPanel = new JPanel();
 		mainPanel.setLayout( new BorderLayout() );
 
 		// Tables.
-		this.growthTable = createGrowthTable( );
-		this.shrinkTable = createShrinkTable( );
+		this.rateTable = createRateTable( );
 		this.catfrequTable = createCatfrequTable( );
 		this.resfrequTable = createResfrequTable( );
 
 		// Tabbed pane.
 		final JTabbedPane tabbedPane = new JTabbedPane( JTabbedPane.LEFT );
-		tabbedPane.add( "Growth Rates", growthTable.getPanel() );
-		tabbedPane.add( "Shrink Rates", shrinkTable.getPanel() );
+		tabbedPane.add( "Growth Rates", rateTable.getPanel() );
 		tabbedPane.add( "Catastrophe Frequency", catfrequTable.getPanel() );
 		tabbedPane.add( "Rescue Frequency", resfrequTable.getPanel() );
 		
-		tabbedPane.setSelectedComponent( growthTable.getPanel() );
+		tabbedPane.setSelectedComponent( rateTable.getPanel() );
 		mainPanel.add( tabbedPane, BorderLayout.CENTER );
 
 		// Tool bar.
@@ -126,8 +124,7 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 		toolbar.add( searchBar );
 		final JToggleButton tglColoring = new JToggleButton( "coloring" );
 		tglColoring.addActionListener( e -> {
-			growthTable.setUseColoring( tglColoring.isSelected() );
-			shrinkTable.setUseColoring( tglColoring.isSelected() );
+			rateTable.setUseColoring( tglColoring.isSelected() );
 			catfrequTable.setUseColoring( tglColoring.isSelected() );
 			resfrequTable.setUseColoring( tglColoring.isSelected() );
 			refresh();
@@ -146,15 +143,12 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 		switch ( index )
 		{
 		case 0:
-			table = growthTable;
+			table = rateTable;
 			break;
 		case 1:
-			table = shrinkTable;
-			break;
-		case 2:
 			table = catfrequTable;
 			break;
-		case 3:
+		case 2:
 			table = resfrequTable;
 		default:
 			throw new IllegalArgumentException( "Unknown table with index " + index );
@@ -182,150 +176,41 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 		}
 	}
 
-	private final TablePanel< Integer > createTrackTable( final Model model, final DisplaySettings ds )
+	
+
+	private final TablePanel< Stat > createStatTable( final Model model )
 	{
-		final List< Integer > objects = new ArrayList<>( model.getTrackModel().trackIDs( true ) );
-		final List< String > features = new ArrayList<>( model.getFeatureModel().getTrackFeatures() );
-		final BiFunction< Integer, String, Double > featureFun = ( trackID, feature ) -> model.getFeatureModel().getTrackFeature( trackID, feature );
-		final Map< String, String > featureNames = model.getFeatureModel().getTrackFeatureNames();
-		final Map< String, String > featureShortNames = model.getFeatureModel().getTrackFeatureShortNames();
-		final Map< String, String > featureUnits = new HashMap<>();
-		for ( final String feature : features )
-		{
-			final Dimension dimension = model.getFeatureModel().getTrackFeatureDimensions().get( feature );
-			final String units = TMUtils.getUnitsFor( dimension, model.getSpaceUnits(), model.getTimeUnits() );
-			featureUnits.put( feature, units );
-		}
-		final Map< String, Boolean > isInts = model.getFeatureModel().getTrackFeatureIsInt();
-		final Map< String, String > infoTexts = new HashMap<>();
-		final Function< Integer, String > labelGenerator = id -> model.getTrackModel().name( id );
-		final BiConsumer< Integer, String > labelSetter = ( id, label ) -> model.getTrackModel().setName( id, label );
-
-		final Supplier< FeatureColorGenerator< Integer > > coloring =
-				() -> FeatureUtils.createWholeTrackColorGenerator( model, ds );
-
-		final TablePanel< Integer > table =
-				new TablePanel<>(
-						objects,
-						features,
-						featureFun,
-						featureNames,
-						featureShortNames,
-						featureUnits,
-						isInts,
-						infoTexts,
-						coloring,
-						labelGenerator,
-						labelSetter );
-
-		table.getTable().getSelectionModel().addListSelectionListener(
-				new TrackTableSelectionListener() );
-
-		return table;
-	}
-
-	private final TablePanel< DefaultWeightedEdge > createEdgeTable( final Model model, final DisplaySettings ds )
-	{
-		final List< DefaultWeightedEdge > objects = new ArrayList<>();
+		final List< Stat > objects = new ArrayList<>();
 		for ( final Integer trackID : model.getTrackModel().unsortedTrackIDs( true ) )
-			objects.addAll( model.getTrackModel().trackEdges( trackID ) );
-		final List< String > features = new ArrayList<>( model.getFeatureModel().getEdgeFeatures() );
-		final Map< String, String > featureNames = model.getFeatureModel().getEdgeFeatureNames();
-		final Map< String, String > featureShortNames = model.getFeatureModel().getEdgeFeatureShortNames();
+			objects.addAll( model.getTrackModel().trackStats( trackID ) );
+		final List< String > features = new ArrayList<>( model.getFeatureModel().getStatFeatures() );
+		final Map< String, String > featureNames = model.getFeatureModel().getStatFeatureNames();
+		final Map< String, String > featureShortNames = model.getFeatureModel().getStatFeatureShortNames();
 		final Map< String, String > featureUnits = new HashMap<>();
 		for ( final String feature : features )
 		{
-			final Dimension dimension = model.getFeatureModel().getEdgeFeatureDimensions().get( feature );
+			final Dimension dimension = model.getFeatureModel().getStatFeatureDimensions().get( feature );
 			final String units = TMUtils.getUnitsFor( dimension, model.getSpaceUnits(), model.getTimeUnits() );
 			featureUnits.put( feature, units );
 		}
-		final Map< String, Boolean > isInts = model.getFeatureModel().getEdgeFeatureIsInt();
+		final Map< String, Boolean > isInts = model.getFeatureModel().getStatFeatureIsInt();
 		final Map< String, String > infoTexts = new HashMap<>();
-		final Function< DefaultWeightedEdge, String > labelGenerator = edge -> String.format( "%s → %s",
-				model.getTrackModel().getEdgeSource( edge ).getName(), model.getTrackModel().getEdgeTarget( edge ).getName() );
-		final BiConsumer< DefaultWeightedEdge, String > labelSetter = null;
+		final Function< Stat, String > labelGenerator = Stat -> Stat.getName();
+		final BiConsumer< Stat, String > labelSetter = ( Stat, label ) -> Stat.setName( label );
 
 		/*
-		 * Feature provider. We add a fake one to show the spot track ID.
+		 * Feature provider. We add a fake one to show the Stat ID.
 		 */
-		final String TRACK_ID = "TRACK_ID";
-		features.add( 0, TRACK_ID );
-		featureNames.put( TRACK_ID, "Track ID" );
-		featureShortNames.put( TRACK_ID, "Track ID" );
-		featureUnits.put( TRACK_ID, "" );
-		isInts.put( TRACK_ID, Boolean.TRUE );
-		infoTexts.put( TRACK_ID, "The id of the track this spot belongs to." );
-
-		final BiFunction< DefaultWeightedEdge, String, Double > featureFun = ( edge, feature ) -> {
-			if ( feature.equals( TRACK_ID ) )
-			{
-				final Integer trackID = model.getTrackModel().trackIDOf( edge );
-				return trackID == null ? null : trackID.doubleValue();
-			}
-			return model.getFeatureModel().getEdgeFeature( edge, feature );
-		};
-
-		final BiConsumer< DefaultWeightedEdge, Color > colorSetter =
-				( edge, color ) -> model.getFeatureModel().putEdgeFeature( edge, ManualEdgeColorAnalyzer.FEATURE, Double.valueOf( color.getRGB() ) );
-
-		final Supplier< FeatureColorGenerator< DefaultWeightedEdge > > coloring =
-				() -> FeatureUtils.createTrackColorGenerator( model, ds );
-
-		final TablePanel< DefaultWeightedEdge > table =
-				new TablePanel<>(
-						objects,
-						features,
-						featureFun,
-						featureNames,
-						featureShortNames,
-						featureUnits,
-						isInts,
-						infoTexts,
-						coloring,
-						labelGenerator,
-						labelSetter,
-						ManualEdgeColorAnalyzer.FEATURE,
-						colorSetter );
-
-		table.getTable().getSelectionModel().addListSelectionListener(
-				new EdgeTableSelectionListener() );
-
-		return table;
-	}
-
-	private final TablePanel< Spot > createSpotTable( final Model model, final DisplaySettings ds )
-	{
-		final List< Spot > objects = new ArrayList<>();
-		for ( final Integer trackID : model.getTrackModel().unsortedTrackIDs( true ) )
-			objects.addAll( model.getTrackModel().trackSpots( trackID ) );
-		final List< String > features = new ArrayList<>( model.getFeatureModel().getSpotFeatures() );
-		final Map< String, String > featureNames = model.getFeatureModel().getSpotFeatureNames();
-		final Map< String, String > featureShortNames = model.getFeatureModel().getSpotFeatureShortNames();
-		final Map< String, String > featureUnits = new HashMap<>();
-		for ( final String feature : features )
-		{
-			final Dimension dimension = model.getFeatureModel().getSpotFeatureDimensions().get( feature );
-			final String units = TMUtils.getUnitsFor( dimension, model.getSpaceUnits(), model.getTimeUnits() );
-			featureUnits.put( feature, units );
-		}
-		final Map< String, Boolean > isInts = model.getFeatureModel().getSpotFeatureIsInt();
-		final Map< String, String > infoTexts = new HashMap<>();
-		final Function< Spot, String > labelGenerator = spot -> spot.getName();
-		final BiConsumer< Spot, String > labelSetter = ( spot, label ) -> spot.setName( label );
+		final String Stat_ID = "ID";
+		features.add( 0, Stat_ID );
+		featureNames.put( Stat_ID, "Stat ID" );
+		featureShortNames.put( Stat_ID, "Stat ID" );
+		featureUnits.put( Stat_ID, "" );
+		isInts.put( Stat_ID, Boolean.TRUE );
+		infoTexts.put( Stat_ID, "The id of the Stat." );
 
 		/*
-		 * Feature provider. We add a fake one to show the spot ID.
-		 */
-		final String SPOT_ID = "ID";
-		features.add( 0, SPOT_ID );
-		featureNames.put( SPOT_ID, "Spot ID" );
-		featureShortNames.put( SPOT_ID, "Spot ID" );
-		featureUnits.put( SPOT_ID, "" );
-		isInts.put( SPOT_ID, Boolean.TRUE );
-		infoTexts.put( SPOT_ID, "The id of the spot." );
-
-		/*
-		 * Feature provider. We add a fake one to show the spot *track* ID.
+		 * Feature provider. We add a fake one to show the Stat *track* ID.
 		 */
 		final String TRACK_ID = "TRACK_ID";
 		features.add( 1, TRACK_ID );
@@ -333,27 +218,27 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 		featureShortNames.put( TRACK_ID, "Track ID" );
 		featureUnits.put( TRACK_ID, "" );
 		isInts.put( TRACK_ID, Boolean.TRUE );
-		infoTexts.put( TRACK_ID, "The id of the track this spot belongs to." );
+		infoTexts.put( TRACK_ID, "The id of the track this Stat belongs to." );
 
-		final BiFunction< Spot, String, Double > featureFun = ( spot, feature ) -> {
+		final BiFunction< Stat, String, Double > featureFun = ( Stat, feature ) -> {
 			if ( feature.equals( TRACK_ID ) )
 			{
-				final Integer trackID = model.getTrackModel().trackIDOf( spot );
+				final Integer trackID = model.getTrackModel().trackIDOf( Stat );
 				return trackID == null ? null : trackID.doubleValue();
 			}
-			else if ( feature.equals( SPOT_ID ) )
-				return ( double ) spot.ID(); 
+			else if ( feature.equals( Stat_ID ) )
+				return ( double ) Stat.ID(); 
 
-			return spot.getFeature( feature );
+			return Stat.getFeature( feature );
 		};
 
-		final BiConsumer< Spot, Color > colorSetter =
-				( spot, color ) -> spot.putFeature( ManualSpotColorAnalyzerFactory.FEATURE, Double.valueOf( color.getRGB() ) );
+		final BiConsumer< Stat, Color > colorSetter =
+				( Stat, color ) -> Stat.putFeature( ManualStatColorAnalyzerFactory.FEATURE, Double.valueOf( color.getRGB() ) );
 
-		final Supplier< FeatureColorGenerator< Spot > > coloring =
-				() -> FeatureUtils.createSpotColorGenerator( model, ds );
+		final Supplier< FeatureColorGenerator< Stat > > coloring =
+				() -> FeatureUtils.createStatColorGenerator( model, ds );
 
-		final TablePanel< Spot > table =
+		final TablePanel< Stat > table =
 				new TablePanel<>(
 						objects,
 						features,
@@ -366,11 +251,11 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 						coloring,
 						labelGenerator,
 						labelSetter,
-						ManualSpotColorAnalyzerFactory.FEATURE,
+						ManualStatColorAnalyzerFactory.FEATURE,
 						colorSetter );
 
 		table.getTable().getSelectionModel().addListSelectionListener(
-				new SpotTableSelectionListener() );
+				new StatTableSelectionListener() );
 
 		return table;
 	}
@@ -397,10 +282,10 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 			return;
 		}
 
-		final List< Spot > spots = new ArrayList<>();
+		final List< Stat > Stats = new ArrayList<>();
 		for ( final Integer trackID : model.getTrackModel().unsortedTrackIDs( true ) )
-			spots.addAll( model.getTrackModel().trackSpots( trackID ) );
-		spotTable.setObjects( spots );
+			Stats.addAll( model.getTrackModel().trackStats( trackID ) );
+		StatTable.setObjects( Stats );
 
 		final List< DefaultWeightedEdge > edges = new ArrayList<>();
 		for ( final Integer trackID : model.getTrackModel().unsortedTrackIDs( true ) )
@@ -424,24 +309,24 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 		ignoreSelectionChange.set( true );
 
 		// Vertices table.
-		final Set< Spot > selectedVertices = selectionModel.getSpotSelection();
-		final JTable vt = spotTable.getTable();
+		final Set< Stat > selectedVertices = selectionModel.getStatSelection();
+		final JTable vt = StatTable.getTable();
 		vt.getSelectionModel().clearSelection();
-		for ( final Spot spot : selectedVertices )
+		for ( final Stat Stat : selectedVertices )
 		{
-			final int row = spotTable.getViewRowForObject( spot );
+			final int row = StatTable.getViewRowForObject( Stat );
 			vt.getSelectionModel().addSelectionInterval( row, row );
 		}
 
-		// Center on selection if we added one spot exactly
-		final Map< Spot, Boolean > spotsAdded = event.getSpots();
-		if ( spotsAdded != null && spotsAdded.size() == 1 )
+		// Center on selection if we added one Stat exactly
+		final Map< Stat, Boolean > StatsAdded = event.getStats();
+		if ( StatsAdded != null && StatsAdded.size() == 1 )
 		{
-			final boolean added = spotsAdded.values().iterator().next();
+			final boolean added = StatsAdded.values().iterator().next();
 			if ( added )
 			{
-				final Spot spot = spotsAdded.keySet().iterator().next();
-				centerViewOn( spot );
+				final Stat Stat = StatsAdded.keySet().iterator().next();
+				centerViewOn( Stat );
 			}
 		}
 
@@ -477,9 +362,9 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 	}
 
 	@Override
-	public void centerViewOn( final Spot spot )
+	public void centerViewOn( final Stat Stat )
 	{
-		spotTable.scrollToObject( spot );
+		StatTable.scrollToObject( Stat );
 	}
 
 	@Override
@@ -498,25 +383,17 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 	public void clear()
 	{}
 
-	public TablePanel< Spot > getSpotTable()
+	public TablePanel< Stat > getStatTable()
 	{
-		return spotTable;
+		return StatTable;
 	}
 
-	public TablePanel< DefaultWeightedEdge > getEdgeTable()
-	{
-		return edgeTable;
-	}
 
-	public TablePanel< Integer > getTrackTable()
-	{
-		return trackTable;
-	}
 
 	/**
-	 * Forward spot table selection to selection model.
+	 * Forward Stat table selection to selection model.
 	 */
-	private final class SpotTableSelectionListener implements ListSelectionListener
+	private final class StatTableSelectionListener implements ListSelectionListener
 	{
 
 		@Override
@@ -527,13 +404,13 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 
 			ignoreSelectionChange.set( true );
 
-			final int[] selectedRows = spotTable.getTable().getSelectedRows();
-			final List< Spot > toSelect = new ArrayList<>( selectedRows.length );
+			final int[] selectedRows = StatTable.getTable().getSelectedRows();
+			final List< Stat > toSelect = new ArrayList<>( selectedRows.length );
 			for ( final int row : selectedRows )
-				toSelect.add( spotTable.getObjectForViewRow( row ) );
+				toSelect.add( StatTable.getObjectForViewRow( row ) );
 
 			selectionModel.clearSelection();
-			selectionModel.addSpotToSelection( toSelect );
+			selectionModel.addStatToSelection( toSelect );
 			refresh();
 
 			ignoreSelectionChange.set( false );
@@ -581,18 +458,16 @@ public class TrackTableView extends JFrame implements TrackMateModelView, ModelC
 
 			ignoreSelectionChange.set( true );
 
-			final Set< Spot > spots = new HashSet<>();
+			final Set< Stat > Stats = new HashSet<>();
 			final Set< DefaultWeightedEdge > edges = new HashSet<>();
 			final int[] selectedRows = trackTable.getTable().getSelectedRows();
 			for ( final int row : selectedRows )
 			{
 				final Integer trackID = trackTable.getObjectForViewRow( row );
-				spots.addAll( model.getTrackModel().trackSpots( trackID ) );
-				edges.addAll( model.getTrackModel().trackEdges( trackID ) );
+				Stats.addAll( model.getTrackModel().trackStats( trackID ) );
 			}
 			selectionModel.clearSelection();
-			selectionModel.addSpotToSelection( spots );
-			selectionModel.addEdgeToSelection( edges );
+			selectionModel.addStatToSelection( Stats );
 
 			refresh();
 

@@ -21,8 +21,8 @@
  */
 package fiji.plugin.vollseg_kymo.action;
 
-import static fiji.plugin.trackmate.gui.Icons.CAMERA_ICON;
-import static fiji.plugin.trackmate.gui.Icons.TRACKMATE_ICON;
+import static fiji.plugin.vollseg_kymo.gui.Icons.CAMERA_ICON;
+import static fiji.plugin.vollseg_kymo.gui.Icons.TRACKMATE_ICON;
 
 import java.awt.Frame;
 import java.awt.Rectangle;
@@ -33,13 +33,9 @@ import javax.swing.JOptionPane;
 
 import org.scijava.plugin.Plugin;
 
-import fiji.plugin.trackmate.Logger;
-import fiji.plugin.trackmate.SelectionModel;
-import fiji.plugin.trackmate.TrackMate;
-import fiji.plugin.trackmate.gui.displaysettings.DisplaySettings;
-import fiji.plugin.trackmate.util.TMUtils;
-import fiji.plugin.trackmate.visualization.ViewUtils;
-import fiji.plugin.trackmate.visualization.hyperstack.HyperStackDisplayer;
+import fiji.plugin.vollseg_kymo.Logger;
+import fiji.plugin.vollseg_kymo.util.TMUtils;
+import fiji.plugin.vollseg_kymo.visualization.ViewUtils;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.measure.Calibration;
