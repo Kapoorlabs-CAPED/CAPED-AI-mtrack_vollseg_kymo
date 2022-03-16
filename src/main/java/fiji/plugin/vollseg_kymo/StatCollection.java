@@ -152,7 +152,132 @@ public class StatCollection implements MultiThreaded
 		stat.putFeature( Stat.NAME, fname );
 		stat.putFeature(VISIBILITY, String.valueOf(ONE));
 	}
+	
+	
+	/**
+	 * Filters out the content of this collection using the specified
+	 * {@link FeatureFilter}. Spots that are filtered out are marked as
+	 * invisible, and visible otherwise.
+	 *
+	 * @param featurefilter
+	 *            the filter to use.
+	 */
+	public final void filter( final FeatureFilter featurefilter )
+	{
 
+		final Collection< String > fnames = content.keySet();
+		final ExecutorService executors = Executors.newFixedThreadPool( numThreads );
+
+		for ( final String fname : fnames )
+		{
+
+			final Runnable command = new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					final Set< Stat > stats = content.get( fname );
+					final double tval = featurefilter.value;
+
+					if ( featurefilter.isAbove )
+					{
+						for ( final Stat stat : stats )
+						{
+							final Double val = Double.valueOf( stat.getFeature( featurefilter.feature ) );
+							stat.putFeature( VISIBILITY, val.compareTo( tval ) < 0 ? String.valueOf( ZERO ) : String.valueOf( ONE ) );
+						}
+
+					}
+					else
+					{
+						for ( final Stat stat : stats )
+						{
+							final Double val = Double.valueOf( stat.getFeature( featurefilter.feature ) );
+							stat.putFeature( VISIBILITY, val.compareTo( tval ) > 0 ? String.valueOf( ZERO ) : String.valueOf( ONE ));
+						}
+					}
+				}
+			};
+			executors.execute( command );
+		}
+
+		executors.shutdown();
+		try
+		{
+			final boolean ok = executors.awaitTermination( TIME_OUT_DELAY, TIME_OUT_UNITS );
+			if ( !ok )
+				System.err.println( "[SpotCollection.filter()] Timeout of " + TIME_OUT_DELAY + " " + TIME_OUT_UNITS + " reached while filtering." );
+		}
+		catch ( final InterruptedException e )
+		{
+			e.printStackTrace();
+		}
+	}
+
+	
+	/**
+	 * Filters out the content of this collection using the specified
+	 * {@link FeatureFilter} collection. Spots that are filtered out are marked
+	 * as invisible, and visible otherwise. To be marked as visible, a spot must
+	 * pass <b>all</b> of the specified filters (AND chaining).
+	 *
+	 * @param filters
+	 *            the filter collection to use.
+	 */
+	public final void filter( final Collection< FeatureFilter > filters )
+	{
+
+		final Collection< String > fnames = content.keySet();
+		final ExecutorService executors = Executors.newFixedThreadPool( numThreads );
+
+		for ( final String fname : fnames )
+		{
+			final Runnable command = new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					final Set< Stat > stats = content.get( fname );
+					for ( final Stat stat : stats )
+					{
+
+						boolean shouldNotBeVisible = false;
+						for ( final FeatureFilter featureFilter : filters )
+						{
+
+							final Double val =  Double.valueOf( stat.getFeature( featureFilter.feature ) );
+							final double tval = featureFilter.value;
+							final boolean isAbove = featureFilter.isAbove;
+
+							if ( null == val || isAbove && val.compareTo( tval ) < 0 || !isAbove && val.compareTo( tval ) > 0 )
+							{
+								shouldNotBeVisible = true;
+								break;
+							}
+						} // loop over filters
+						stat.putFeature( VISIBILITY, shouldNotBeVisible ? String.valueOf( ZERO ) : String.valueOf( ONE ) );
+
+					} // loop over spots
+				}
+			};
+			executors.execute( command );
+		}
+
+		executors.shutdown();
+		try
+		{
+			final boolean ok = executors.awaitTermination( TIME_OUT_DELAY, TIME_OUT_UNITS );
+			if ( !ok )
+				System.err.println( "[SpotCollection.filter()] Timeout of " + TIME_OUT_DELAY + " " + TIME_OUT_UNITS + " reached while filtering." );
+		}
+		catch ( final InterruptedException e )
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
 	/**
 	 * Removes the given stat from this collection, at the specified frame.
 	 * <p>

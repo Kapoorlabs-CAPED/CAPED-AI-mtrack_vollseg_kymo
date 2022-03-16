@@ -21,8 +21,8 @@
  */
 package fiji.plugin.vollseg_kymo.gui.components;
 
-import static fiji.plugin.trackmate.gui.Fonts.BIG_FONT;
-import static fiji.plugin.trackmate.gui.Fonts.FONT;
+import static fiji.plugin.vollseg_kymo.gui.Fonts.BIG_FONT;
+import static fiji.plugin.vollseg_kymo.gui.Fonts.FONT;
 
 import java.awt.Component;
 import java.awt.Font;

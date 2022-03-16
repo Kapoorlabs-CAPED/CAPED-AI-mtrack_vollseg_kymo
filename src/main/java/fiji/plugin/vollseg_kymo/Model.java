@@ -32,6 +32,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleWeightedGraph;
 
 
+
 /**
  * <h1>The model for the data managed by TrackMate trackmate.</h1>
  * <p>
@@ -50,7 +51,9 @@ public class Model
 	/*
 	 * CONSTANTS
 	 */
+	// FEATURES
 
+	private final FeatureModel featureModel;
 	private static final boolean DEBUG = false;
 
 	/*
@@ -60,7 +63,7 @@ public class Model
 	// STATS
 
 	/** The stats managed by this model. */
-	protected StatCollection spots = new StatCollection();
+	protected StatCollection stats = new StatCollection();
 
 	// TRANSACTION MODEL
 
@@ -72,7 +75,14 @@ public class Model
 	 */
 	private int updateLevel = 0;
 
-	private final HashSet< Stat > spotsAdded = new HashSet< >();
+	private final HashSet< Stat > statsAdded = new HashSet< >();
+	
+	private final HashSet< Stat > statsRemoved = new HashSet< >();
+
+	private final HashSet< Stat > statsMoved = new HashSet< >();
+
+	private final HashSet< Stat > statsUpdated = new HashSet< >();
+	
 
 
 	/**
@@ -82,12 +92,12 @@ public class Model
 	 * the event ID in this cache in the meantime. The event cache contains only
 	 * the int IDs of the events listed in {@link ModelChangeEvent}, namely
 	 * <ul>
-	 * <li> {@link ModelChangeEvent#SPOTS_COMPUTED}
+	 * <li> {@link ModelChangeEvent#stats_COMPUTED}
 	 * <li> {@link ModelChangeEvent#TRACKS_COMPUTED}
 	 * <li> {@link ModelChangeEvent#TRACKS_VISIBILITY_CHANGED}
 	 * </ul>
 	 * The {@link ModelChangeEvent#MODEL_MODIFIED} cannot be cached this way,
-	 * for it needs to be configured with modification spot and edge targets, so
+	 * for it needs to be configured with modification Stat and edge targets, so
 	 * it uses a different system (see {@link #flushUpdate()}).
 	 */
 	private final HashSet< Integer > eventCache = new HashSet< >();
@@ -115,7 +125,6 @@ public class Model
 	public Model()
 	{
 		featureModel = createFeatureModel();
-		trackModel = createTrackModel();
 	}
 
 	/*
@@ -129,11 +138,6 @@ public class Model
 	 * own subclass of {@link TrackModel}.
 	 *
 	 * @return a new instance of {@link TrackModel}.
-	 */
-	protected TrackModel createTrackModel()
-	{
-		return new TrackModel();
-	}
 
 	/**
 	 * Instantiates a blank {@link FeatureModel} to use whithin this model.
@@ -158,40 +162,24 @@ public class Model
 		final StringBuilder str = new StringBuilder();
 
 		str.append( '\n' );
-		if ( null == spots || spots.keySet().size() == 0 )
+		if ( null == stats || stats.keySet().size() == 0 )
 		{
-			str.append( "No spots.\n" );
+			str.append( "No stats.\n" );
 		}
 		else
 		{
-			str.append( "Contains " + spots.getNSpots( false ) + " spots in total.\n" );
+			str.append( "Contains " + stats.getNstats( false ) + " stats in total.\n" );
 		}
-		if ( spots.getNSpots( true ) == 0 )
+		if ( stats.getNstats( true ) == 0 )
 		{
-			str.append( "No filtered spots.\n" );
+			str.append( "No filtered stats.\n" );
 		}
 		else
 		{
-			str.append( "Contains " + spots.getNSpots( true ) + " filtered spots.\n" );
+			str.append( "Contains " + stats.getNstats( true ) + " filtered stats.\n" );
 		}
 
 		str.append( '\n' );
-		if ( trackModel.nTracks( false ) == 0 )
-		{
-			str.append( "No tracks.\n" );
-		}
-		else
-		{
-			str.append( "Contains " + trackModel.nTracks( false ) + " tracks in total.\n" );
-		}
-		if ( trackModel.nTracks( true ) == 0 )
-		{
-			str.append( "No filtered tracks.\n" );
-		}
-		else
-		{
-			str.append( "Contains " + trackModel.nTracks( true ) + " filtered tracks.\n" );
-		}
 
 		str.append( '\n' );
 		str.append( "Physical units:\n  space units: " + spaceUnits + "\n  time units: " + timeUnits + '\n' );
@@ -283,90 +271,36 @@ public class Model
 		}
 	}
 
+	
+
+	
 	/*
-	 * TRACK METHODS: WE DELEGATE TO THE TRACK GRAPH MODEL
+	 * GETTERS / SETTERS FOR stats
 	 */
 
 	/**
-	 * Removes all the tracks from this model.
+	 * Returns the Stat collection managed by this model.
+	 *
+	 * @return the Stat collection managed by this model.
+	 */
+	public StatCollection getstats()
+	{
+		return stats;
+	}
+
+	/**
+	 * Removes all the stats from this model.
 	 *
 	 * @param doNotify
 	 *            if <code>true</code>, model listeners will be notified with a
-	 *            {@link ModelChangeEvent#TRACKS_COMPUTED} event.
+	 *            {@link ModelChangeEvent#stats_COMPUTED} event.
 	 */
-	public void clearTracks( final boolean doNotify )
+	public void clearstats( final boolean doNotify )
 	{
-		trackModel.clear();
+		stats.clear();
 		if ( doNotify )
 		{
-			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.TRACKS_COMPUTED );
-			for ( final ModelChangeListener listener : modelChangeListeners )
-				listener.modelChanged( event );
-		}
-	}
-
-	/**
-	 * Returns the {@link TrackModel} that manages the tracks for this model.
-	 * 
-	 * @return the track model.
-	 */
-	public TrackModel getTrackModel()
-	{
-		return trackModel;
-	}
-
-	/**
-	 * Sets the tracks stored in this model in bulk.
-	 * <p>
-	 * Clears the tracks of this model and replace it by the tracks found by
-	 * inspecting the specified graph. All new tracks found will be made visible
-	 * and will be given a default name.
-	 * <p>
-	 *
-	 * @param graph
-	 *            the graph to parse for tracks.
-	 * @param doNotify
-	 *            if <code>true</code>, model listeners will be notified with a
-	 *            {@link ModelChangeEvent#TRACKS_COMPUTED} event.
-	 */
-	public void setTracks( final SimpleWeightedGraph< Stat, DefaultWeightedEdge > graph, final boolean doNotify )
-	{
-		trackModel.setGraph( graph );
-		if ( doNotify )
-		{
-			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.TRACKS_COMPUTED );
-			for ( final ModelChangeListener listener : modelChangeListeners )
-				listener.modelChanged( event );
-		}
-	}
-
-	/*
-	 * GETTERS / SETTERS FOR SPOTS
-	 */
-
-	/**
-	 * Returns the spot collection managed by this model.
-	 *
-	 * @return the spot collection managed by this model.
-	 */
-	public StatCollection getSpots()
-	{
-		return spots;
-	}
-
-	/**
-	 * Removes all the spots from this model.
-	 *
-	 * @param doNotify
-	 *            if <code>true</code>, model listeners will be notified with a
-	 *            {@link ModelChangeEvent#SPOTS_COMPUTED} event.
-	 */
-	public void clearSpots( final boolean doNotify )
-	{
-		spots.clear();
-		if ( doNotify )
-		{
-			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.SPOTS_COMPUTED );
+			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.StatS_COMPUTED );
 			for ( final ModelChangeListener listener : modelChangeListeners )
 				listener.modelChanged( event );
 		}
@@ -376,17 +310,17 @@ public class Model
 	 * Set the {@link StatCollection} managed by this model.
 	 *
 	 * @param doNotify
-	 *            if true, will file a {@link ModelChangeEvent#SPOTS_COMPUTED}
+	 *            if true, will file a {@link ModelChangeEvent#stats_COMPUTED}
 	 *            event.
-	 * @param spots
+	 * @param stats
 	 *            the {@link StatCollection} to set.
 	 */
-	public void setSpots( final StatCollection spots, final boolean doNotify )
+	public void setstats( final StatCollection stats, final boolean doNotify )
 	{
-		this.spots = spots;
+		this.stats = stats;
 		if ( doNotify )
 		{
-			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.SPOTS_COMPUTED );
+			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.StatS_COMPUTED );
 			for ( final ModelChangeListener listener : modelChangeListeners )
 				listener.modelChanged( event );
 		}
@@ -396,18 +330,18 @@ public class Model
 	 * Filters the {@link StatCollection} managed by this model with the
 	 * {@link FeatureFilter}s specified.
 	 *
-	 * @param spotFilters
+	 * @param StatFilters
 	 *            the {@link FeatureFilter} collection to use for filtering.
 	 * @param doNotify
-	 *            if true, will file a {@link ModelChangeEvent#SPOTS_FILTERED}
+	 *            if true, will file a {@link ModelChangeEvent#stats_FILTERED}
 	 *            event.
 	 */
-	public void filterSpots( final Collection< FeatureFilter > spotFilters, final boolean doNotify )
+	public void filterstats( final Collection< FeatureFilter > StatFilters, final boolean doNotify )
 	{
-		spots.filter( spotFilters );
+		stats.filter( StatFilters );
 		if ( doNotify )
 		{
-			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.SPOTS_FILTERED );
+			final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.StatS_FILTERED );
 			for ( final ModelChangeListener listener : modelChangeListeners )
 				listener.modelChanged( event );
 		}
@@ -466,8 +400,8 @@ public class Model
 	 */
 
 	/**
-	 * Moves a single spot from a frame to another, make it visible if it was
-	 * not, then mark it for feature update. If the source spot could not be
+	 * Moves a single Stat from a frame to another, make it visible if it was
+	 * not, then mark it for feature update. If the source Stat could not be
 	 * found in the source frame, nothing is done and <code>null</code> is
 	 * returned.
 	 * <p>
@@ -483,40 +417,38 @@ public class Model
 	 * }
 	 * </pre>
 	 *
-	 * @param spotToMove
-	 *            the spot to move
+	 * @param StatToMove
+	 *            the Stat to move
 	 * @param fromFrame
-	 *            the frame the spot originated from
+	 *            the frame the Stat originated from
 	 * @param toFrame
 	 *            the destination frame
-	 * @return the spot that was moved, or <code>null</code> if it could not be
+	 * @return the Stat that was moved, or <code>null</code> if it could not be
 	 *         found in the source frame
 	 */
-	public synchronized Stat moveSpotFrom( final Stat spotToMove, final Integer fromFrame, final Integer toFrame )
+	public synchronized Stat moveStatFrom( final Stat StatToMove, final String fromFile )
 	{
-		final boolean ok = spots.remove( spotToMove, fromFrame );
+		final boolean ok = stats.remove( StatToMove, fromFile );
 		if ( !ok )
 		{
 			if ( DEBUG )
 			{
-				System.err.println( "[TrackMateModel] Could not find spot " + spotToMove + " in frame " + fromFrame );
+				System.err.println( "[Vollseg_kymo_model] Could not find Stat " + StatToMove + " in frame " + fromFile );
 			}
 			return null;
 		}
-		spots.add( spotToMove, toFrame );
+		stats.add( StatToMove, fromFile );
 		if ( DEBUG )
 		{
-			System.out.println( "[TrackMateModel] Moving " + spotToMove + " from frame " + fromFrame + " to frame " + toFrame );
+			System.out.println( "[Vollseg_kymo_model] Moving " + StatToMove + " from file " + fromFile );
 		}
 
-		// Mark for update spot and edges
-		trackModel.edgesModified.addAll( trackModel.edgesOf( spotToMove ) );
-		spotsMoved.add( spotToMove );
-		return spotToMove;
+		statsMoved.add( StatToMove );
+		return StatToMove;
 	}
 
 	/**
-	 * Adds a single spot to the collections managed by this model, mark it as
+	 * Adds a single Stat to the collections managed by this model, mark it as
 	 * visible, then update its features.
 	 * <p>
 	 * For the model update to happen correctly and listeners to be notified
@@ -531,28 +463,27 @@ public class Model
 	 * }
 	 * </pre>
 	 * 
-	 * @param spotToAdd
-	 *            the spot to add.
+	 * @param StatToAdd
+	 *            the Stat to add.
 	 * @param toFrame
 	 *            the frame to add it to.
 	 *
-	 * @return the spot just added.
+	 * @return the Stat just added.
 	 */
-	public synchronized Stat addSpotTo( final Stat spotToAdd, final Integer toFrame )
+	public synchronized Stat addStatTo( final Stat StatToAdd, final String toFile )
 	{
-		spots.add( spotToAdd, toFrame );
-		spotsAdded.add( spotToAdd ); // TRANSACTION
+		stats.add( StatToAdd, toFile );
+		statsAdded.add( StatToAdd ); // TRANSACTION
 		if ( DEBUG )
 		{
-			System.out.println( "[TrackMateModel] Adding spot " + spotToAdd + " to frame " + toFrame );
+			System.out.println( "[TrackMateModel] Adding Stat " + StatToAdd + " to frame " + toFile );
 		}
-		trackModel.addSpot( spotToAdd );
-		return spotToAdd;
+		return StatToAdd;
 	}
 
 	/**
-	 * Removes a single spot from the collections managed by this model. If the
-	 * spot cannot be found, nothing is done and <code>null</code> is returned.
+	 * Removes a single Stat from the collections managed by this model. If the
+	 * Stat cannot be found, nothing is done and <code>null</code> is returned.
 	 * <p>
 	 * For the model update to happen correctly and listeners to be notified
 	 * properly, a call to this method must happen within a transaction, as in:
@@ -566,31 +497,30 @@ public class Model
 	 * }
 	 * </pre>
 	 *
-	 * @param spotToRemove
-	 *            the spot to remove.
-	 * @return the spot removed, or <code>null</code> if it could not be found.
+	 * @param StatToRemove
+	 *            the Stat to remove.
+	 * @return the Stat removed, or <code>null</code> if it could not be found.
 	 */
-	public synchronized Stat removeSpot( final Stat spotToRemove )
+	public synchronized Stat removeStat( final Stat StatToRemove )
 	{
-		final int fromFrame = spotToRemove.getFeature( Stat.FRAME ).intValue();
-		if ( spots.remove( spotToRemove, fromFrame ) )
+		final String fromFile = StatToRemove.getFeature( Stat.NAME );
+		if ( stats.remove( StatToRemove, fromFile ) )
 		{
-			spotsRemoved.add( spotToRemove ); // TRANSACTION
+			statsRemoved.add( StatToRemove ); // TRANSACTION
 			if ( DEBUG )
-				System.out.println( "[TrackMateModel] Removing spot " + spotToRemove + " from frame " + fromFrame );
+				System.out.println( "[Vollseg_kymo_model] Removing Stat " + StatToRemove + " from frame " + fromFile );
 
-			trackModel.removeSpot( spotToRemove ); 
 			// changes to edges will be caught automatically by the TrackGraphModel
-			return spotToRemove;
+			return StatToRemove;
 		}
 		if ( DEBUG )
-			System.err.println( "[TrackMateModel] The spot " + spotToRemove + " cannot be found in frame " + fromFrame );
+			System.err.println( "[Vollseg_kymo_model] The Stat " + StatToRemove + " cannot be found in frame " + fromFile );
 
 		return null;
 	}
 
 	/**
-	 * Mark the specified spot for update. At the end of the model transaction,
+	 * Mark the specified Stat for update. At the end of the model transaction,
 	 * its features will be recomputed, and other edge and track features that
 	 * depends on it will be as well.
 	 * <p>
@@ -606,150 +536,21 @@ public class Model
 	 * }
 	 * </pre>
 	 *
-	 * @param spotToUpdate
-	 *            the spot to mark for update
+	 * @param StatToUpdate
+	 *            the Stat to mark for update
 	 */
-	public synchronized void updateFeatures( final Stat spotToUpdate )
+	public synchronized void updateFeatures( final Stat StatToUpdate )
 	{
-		spotsUpdated.add( spotToUpdate ); // Enlist for feature update when
+		statsUpdated.add( StatToUpdate ); // Enlist for feature update when
 											// transaction is marked as finished
-		final Set< DefaultWeightedEdge > touchingEdges = trackModel.edgesOf( spotToUpdate );
-		if ( null != touchingEdges )
-		{
-			trackModel.edgesModified.addAll( touchingEdges );
-		}
+		
 	}
 
-	/**
-	 * Creates a new edge between two spots, with the specified weight.
-	 * <p>
-	 * For the model update to happen correctly and listeners to be notified
-	 * properly, a call to this method must happen within a transaction, as in:
-	 *
-	 * <pre>
-	 * model.beginUpdate();
-	 * try {
-	 * 	... // model modifications here
-	 * } finally {
-	 * 	model.endUpdate();
-	 * }
-	 * </pre>
-	 *
-	 * @param source
-	 *            the source spot.
-	 * @param target
-	 *            the target spot.
-	 * @param weight
-	 *            the weight of the edge.
-	 * @return the edge created.
-	 */
-	public synchronized DefaultWeightedEdge addEdge( final Stat source, final Stat target, final double weight )
-	{
-		return trackModel.addEdge( source, target, weight );
-	}
-
-	/**
-	 * Removes an edge between two spots and returns it. Returns
-	 * <code>null</code> and do nothing to the tracks if the edge did not exist.
-	 *
-	 * @param source
-	 *            the source spot.
-	 * @param target
-	 *            the target spot.
-	 * @return the edge between the two spots, if it existed.
-	 */
-	public synchronized DefaultWeightedEdge removeEdge( final Stat source, final Stat target )
-	{
-		return trackModel.removeEdge( source, target );
-	}
-
-	/**
-	 * Removes an existing edge from the model.
-	 * <p>
-	 * For the model update to happen correctly and listeners to be notified
-	 * properly, a call to this method must happen within a transaction, as in:
-	 *
-	 * <pre>
-	 * model.beginUpdate();
-	 * try {
-	 * 	... // model modifications here
-	 * } finally {
-	 * 	model.endUpdate();
-	 * }
-	 * </pre>
-	 *
-	 * @param edge
-	 *            the edge to remove.
-	 * @return <code>true</code> if the edge existed in the model and was
-	 *         successfully, <code>false</code> otherwise.
-	 */
-	public synchronized boolean removeEdge( final DefaultWeightedEdge edge )
-	{
-		return trackModel.removeEdge( edge );
-	}
-
-	/**
-	 * Sets the weight of the specified edge.
-	 * <p>
-	 * For the model update to happen correctly and listeners to be notified
-	 * properly, a call to this method must happen within a transaction, as in:
-	 *
-	 * <pre>
-	 * model.beginUpdate();
-	 * try {
-	 * 	... // model modifications here
-	 * } finally {
-	 * 	model.endUpdate();
-	 * }
-	 * </pre>
-	 *
-	 * @param edge
-	 *            the edge.
-	 * @param weight
-	 *            the weight to set.
-	 */
-	public synchronized void setEdgeWeight( final DefaultWeightedEdge edge, final double weight )
-	{
-		trackModel.setEdgeWeight( edge, weight );
-	}
-
-	/**
-	 * Sets the visibility of the specified track. Throws a
-	 * {@link NullPointerException} if the track ID is unknown to the model.
-	 * <p>
-	 * For the model update to happen correctly and listeners to be notified
-	 * properly, a call to this method must happen within a transaction, as in:
-	 *
-	 * <pre>
-	 * model.beginUpdate();
-	 * try {
-	 * 	... // model modifications here
-	 * } finally {
-	 * 	model.endUpdate();
-	 * }
-	 * </pre>
-	 *
-	 * @param trackID
-	 *            the track ID.
-	 * @param visible
-	 *            the desired visibility.
-	 * @return the specified track visibility prior to calling this method.
-	 */
-	public synchronized boolean setTrackVisibility( final Integer trackID, final boolean visible )
-	{
-		final boolean oldvis = trackModel.setVisibility( trackID, visible );
-		final boolean modified = oldvis != visible;
-		if ( modified )
-		{
-			eventCache.add( ModelChangeEvent.TRACKS_VISIBILITY_CHANGED );
-		}
-		return oldvis;
-	}
-
+	
 	/**
 	 * Returns a copy of this model.
 	 * <p>
-	 * The copy is made of the same spot objects but on a different graph, that
+	 * The copy is made of the same Stat objects but on a different graph, that
 	 * can be safely edited. The copy does not include the feature values for
 	 * edges and tracks, but the features are declared.
 	 * 
@@ -762,40 +563,19 @@ public class Model
 		// Physical units.
 		copy.setPhysicalUnits( spaceUnits, timeUnits );
 
-		// Spots.
-		final StatCollection spots2 = StatCollection.fromCollection( spots.iterable( true ) );
-		copy.setSpots( spots2, false );
-
-		// Track model.
-		final SimpleWeightedGraph< Stat, DefaultWeightedEdge > graphCopy = new SimpleWeightedGraph<>( DefaultWeightedEdge.class );
-		Graphs.addGraph( graphCopy, trackModel.graph );
-		copy.getTrackModel().from(
-				graphCopy,
-				new HashMap<>( trackModel.connectedVertexSets ),
-				new HashMap<>( trackModel.connectedEdgeSets ),
-				new HashMap<>( trackModel.visibility ),
-				new HashMap<>( trackModel.names ) );
+		// stats.
+		final StatCollection stats2 = StatCollection.fromCollection( stats.iterable( true ) );
+		copy.setstats( stats2, false );
 
 		// Feature model.
 		final FeatureModel fm2 = copy.getFeatureModel();
-		fm2.declareSpotFeatures(
-				featureModel.getSpotFeatures(),
-				featureModel.getSpotFeatureNames(),
-				featureModel.getSpotFeatureShortNames(),
-				featureModel.getSpotFeatureDimensions(),
-				featureModel.getSpotFeatureIsInt() );
-		fm2.declareEdgeFeatures(
-				featureModel.getEdgeFeatures(),
-				featureModel.getEdgeFeatureNames(),
-				featureModel.getEdgeFeatureShortNames(),
-				featureModel.getEdgeFeatureDimensions(),
-				featureModel.getEdgeFeatureIsInt() );
-		fm2.declareTrackFeatures(
-				featureModel.getTrackFeatures(),
-				featureModel.getTrackFeatureNames(),
-				featureModel.getTrackFeatureShortNames(),
-				featureModel.getTrackFeatureDimensions(),
-				featureModel.getTrackFeatureIsInt() );
+		fm2.declarestatFeatures(
+				featureModel.getstatFeatures(),
+				featureModel.getstatFeatureNames(),
+				featureModel.getstatFeatureShortNames(),
+				featureModel.getstatFeatureDimensions(),
+				featureModel.getstatFeatureIsInt() );
+	
 		
 		// Feature values are not copied.
 		return copy;
@@ -813,135 +593,60 @@ public class Model
 
 		if ( DEBUG )
 		{
-			System.out.println( "[TrackMateModel] #flushUpdate()." );
-			System.out.println( "[TrackMateModel] #flushUpdate(): Event cache is :" + eventCache );
-			System.out.println( "[TrackMateModel] #flushUpdate(): Track content is:\n" + trackModel.echo() );
+			System.out.println( "[Vollseg_kymo_model] #flushUpdate()." );
+			System.out.println( "[Vollseg_kymo_model] #flushUpdate(): Event cache is :" + eventCache );
 		}
 
-		/*
-		 * We recompute tracks only if some edges have been added or removed,
-		 * (if some spots have been removed that causes edges to be removes, we
-		 * already know about it). We do NOT recompute tracks if spots have been
-		 * added: they will not result in new tracks made of single spots.
-		 */
-		final int nEdgesToSignal = trackModel.edgesAdded.size() + trackModel.edgesRemoved.size() + trackModel.edgesModified.size();
+	
 
-		// Do we have tracks to update?
-		final HashSet< Integer > tracksToUpdate = new HashSet< >( trackModel.tracksUpdated );
-
-		// We also want to update the tracks that have edges that were modified
-		for ( final DefaultWeightedEdge modifiedEdge : trackModel.edgesModified )
+		// Deal with new or moved stats: we need to update their features.
+		final int nstatsToUpdate = statsAdded.size() + statsMoved.size() + statsUpdated.size();
+		if ( nstatsToUpdate > 0 )
 		{
-			tracksToUpdate.add( trackModel.trackIDOf( modifiedEdge ) );
-		}
-
-		// Deal with new or moved spots: we need to update their features.
-		final int nSpotsToUpdate = spotsAdded.size() + spotsMoved.size() + spotsUpdated.size();
-		if ( nSpotsToUpdate > 0 )
-		{
-			final HashSet< Stat > spotsToUpdate = new HashSet< >( nSpotsToUpdate );
-			spotsToUpdate.addAll( spotsAdded );
-			spotsToUpdate.addAll( spotsMoved );
-			spotsToUpdate.addAll( spotsUpdated );
+			final HashSet< Stat > statsToUpdate = new HashSet< >( nstatsToUpdate );
+			statsToUpdate.addAll( statsAdded );
+			statsToUpdate.addAll( statsMoved );
+			statsToUpdate.addAll( statsUpdated );
 		}
 
 		// Initialize event
 		final ModelChangeEvent event = new ModelChangeEvent( this, ModelChangeEvent.MODEL_MODIFIED );
 
-		// Configure it with spots to signal.
-		final int nSpotsToSignal = nSpotsToUpdate + spotsRemoved.size();
-		if ( nSpotsToSignal > 0 )
+		// Configure it with stats to signal.
+		final int nstatsToSignal = nstatsToUpdate + statsRemoved.size();
+		if ( nstatsToSignal > 0 )
 		{
-			event.addAllSpots( spotsAdded );
-			event.addAllSpots( spotsRemoved );
-			event.addAllSpots( spotsMoved );
-			event.addAllSpots( spotsUpdated );
+			event.addAllStats( statsAdded );
+			event.addAllStats( statsRemoved );
+			event.addAllStats( statsMoved );
+			event.addAllStats( statsUpdated );
 
-			for ( final Stat spot : spotsAdded )
+			for ( final Stat Stat : statsAdded )
 			{
-				event.putSpotFlag( spot, ModelChangeEvent.FLAG_SPOT_ADDED );
+				event.putStatFlag( Stat, ModelChangeEvent.FLAG_Stat_ADDED );
 			}
-			for ( final Stat spot : spotsRemoved )
+			for ( final Stat Stat : statsRemoved )
 			{
-				event.putSpotFlag( spot, ModelChangeEvent.FLAG_SPOT_REMOVED );
+				event.putStatFlag( Stat, ModelChangeEvent.FLAG_Stat_REMOVED );
 			}
-			for ( final Stat spot : spotsMoved )
+			for ( final Stat Stat : statsMoved )
 			{
-				event.putSpotFlag( spot, ModelChangeEvent.FLAG_SPOT_FRAME_CHANGED );
+				event.putStatFlag( Stat, ModelChangeEvent.FLAG_Stat_FILE_CHANGED );
 			}
-			for ( final Stat spot : spotsUpdated )
+			for ( final Stat Stat : statsUpdated )
 			{
-				event.putSpotFlag( spot, ModelChangeEvent.FLAG_SPOT_MODIFIED );
+				event.putStatFlag( Stat, ModelChangeEvent.FLAG_Stat_MODIFIED );
 			}
 		}
 
-		// Configure it with edges to signal.
-		if ( nEdgesToSignal > 0 )
-		{
-			event.addAllEdges( trackModel.edgesAdded );
-			event.addAllEdges( trackModel.edgesRemoved );
-			event.addAllEdges( trackModel.edgesModified );
+		
 
-			for ( final DefaultWeightedEdge edge : trackModel.edgesAdded )
-			{
-				event.putEdgeFlag( edge, ModelChangeEvent.FLAG_EDGE_ADDED );
-			}
-			for ( final DefaultWeightedEdge edge : trackModel.edgesRemoved )
-			{
-				event.putEdgeFlag( edge, ModelChangeEvent.FLAG_EDGE_REMOVED );
-			}
-			for ( final DefaultWeightedEdge edge : trackModel.edgesModified )
-			{
-				event.putEdgeFlag( edge, ModelChangeEvent.FLAG_EDGE_MODIFIED );
-			}
-		}
-
-		// Configure it with the tracks we found need updating
-		event.setTracksUpdated( tracksToUpdate );
-
-		try
-		{
-			if ( nEdgesToSignal + nSpotsToSignal > 0 )
-			{
-				if ( DEBUG )
-				{
-					System.out.println( "[TrackMateModel] #flushUpdate(): firing model modified event" );
-					System.out.println( "[TrackMateModel] to " + modelChangeListeners );
-
-				}
-				for ( final ModelChangeListener listener : modelChangeListeners )
-				{
-					listener.modelChanged( event );
-				}
-			}
-
-			// Fire events stored in the event cache
-			for ( final int eventID : eventCache )
-			{
-				if ( DEBUG )
-				{
-					System.out.println( "[TrackMateModel] #flushUpdate(): firing event with ID " + eventID );
-				}
-				final ModelChangeEvent cachedEvent = new ModelChangeEvent( this, eventID );
-				for ( final ModelChangeListener listener : modelChangeListeners )
-				{
-					listener.modelChanged( cachedEvent );
-				}
-			}
-
-		}
-		finally
-		{
-			spotsAdded.clear();
-			spotsRemoved.clear();
-			spotsMoved.clear();
-			spotsUpdated.clear();
-			trackModel.edgesAdded.clear();
-			trackModel.edgesRemoved.clear();
-			trackModel.edgesModified.clear();
-			trackModel.tracksUpdated.clear();
+		
+			statsAdded.clear();
+			statsRemoved.clear();
+			statsMoved.clear();
+			statsUpdated.clear();
 			eventCache.clear();
-		}
 	}
 
 }
