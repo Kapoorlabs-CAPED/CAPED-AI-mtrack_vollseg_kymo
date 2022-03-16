@@ -34,5 +34,14 @@
 	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-util/1.13/batik-util-1.13.jar"/>
 	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-xml/1.13/batik-xml-1.13.jar"/>
 	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/xmlgraphics-commons/2.4/xmlgraphics-commons-2.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/net/imglib2/imglib2-algorithm-gpl/0.2.5/imglib2-algorithm-gpl-0.2.5.jar" sourcepath="C:/Users/rando/.m2/repository/net/imglib2/imglib2-algorithm-gpl/0.2.5/imglib2-algorithm-gpl-0.2.5-sources.jar">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="maven.groupId" value="net.imglib2"/>
+			<attribute name="maven.artifactId" value="imglib2-algorithm-gpl"/>
+			<attribute name="maven.version" value="0.2.5"/>
+			<attribute name="maven.scope" value="compile"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

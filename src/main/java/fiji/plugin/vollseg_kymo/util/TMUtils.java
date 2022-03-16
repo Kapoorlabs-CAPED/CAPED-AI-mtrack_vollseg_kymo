@@ -21,7 +21,6 @@
  */
 package fiji.plugin.vollseg_kymo.util;
 
-import static fiji.plugin.trackmate.detection.DetectorKeys.KEY_TARGET_CHANNEL;
 
 import java.io.File;
 import java.nio.file.FileSystems;
@@ -41,10 +40,10 @@ import java.util.Set;
 
 import org.scijava.Context;
 
-import fiji.plugin.trackmate.Dimension;
-import fiji.plugin.trackmate.Logger;
-import fiji.plugin.trackmate.Settings;
-import fiji.plugin.trackmate.Spot;
+import fiji.plugin.vollseg_kymo.Dimension;
+import fiji.plugin.vollseg_kymo.Logger;
+import fiji.plugin.vollseg_kymo.Settings;
+import fiji.plugin.vollseg_kymo.Stat;
 import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.ImgPlus;
@@ -317,16 +316,7 @@ public class TMUtils
 		return new double[] { ( max - min ), min, max };
 	}
 
-	/**
-	 * Store the x, y, z coordinates of the specified spot in the first 3
-	 * elements of the specified double array.
-	 */
-	public static final void localize( final Stat spot, final double[] coords )
-	{
-		coords[ 0 ] = spot.getFeature( Stat.POSITION_X ).doubleValue();
-		coords[ 1 ] = spot.getFeature( Stat.POSITION_Y ).doubleValue();
-		coords[ 2 ] = spot.getFeature( Stat.POSITION_Z ).doubleValue();
-	}
+
 
 	/**
 	 * Return the optimal bin number for a histogram of the data given in array,
@@ -470,34 +460,25 @@ public class TMUtils
 	{
 		switch ( dimension )
 		{
-		case ANGLE:
-			return "radians";
-		case INTENSITY:
-			return "counts";
-		case INTENSITY_SQUARED:
-			return "counts^2";
+		case RATE:
+			return spaceUnits + "/" + timeUnits;
+		case START_TIME:
+			return timeUnits;
+		case END_TIME:
+			return timeUnits;
 		case NONE:
 			return "";
-		case POSITION:
-		case LENGTH:
-			return spaceUnits;
-		case AREA:
-			return spaceUnits + "^2";
-		case QUALITY:
-			return "quality";
-		case COST:
-			return "cost";
-		case TIME:
-			return timeUnits;
-		case VELOCITY:
+		case AVERAGE_GROWTH_RATE:
 			return spaceUnits + "/" + timeUnits;
-		case RATE:
-			return "/" + timeUnits;
-		case ANGLE_RATE:
-			return "rad/" + timeUnits;
+		case AVERAGE_SHRINK_RATE:
+			return spaceUnits + "/" + timeUnits;
+		case CATASTROPHE_FREQUENCY:
+			return 1 + "/" + timeUnits;
+		case RESCUE_FREQUENCY:
+			return  1 + "/" + timeUnits;
 		default:
 		case STRING:
-			return null;
+			return "mtrack_vollseg_kymo";
 		}
 	}
 
@@ -529,174 +510,9 @@ public class TMUtils
 		return imgTCZ;
 	}
 
-	/**
-	 * Returns an interval object that slices in the specified {@link ImgPlus}
-	 * <b>in a single channel</b> (the channel dimension is dropped).
-	 * <p>
-	 * The specified {@link Settings} object is used to determine a crop-cube
-	 * that will determine the X,Y,Z size of the interval. The channel dimension
-	 * will be dropped.
-	 * <p>
-	 * If the specified {@link ImgPlus} has a time axis, it will be included,
-	 * using the {@link Settings#tstart} and {@link Settings#tend} as bounds. If
-	 * it is a singleton dimension (1 time-point) it won't be dropped.
-	 *
-	 * @param img
-	 *            the source image into which the interval is to be defined.
-	 * @param settings
-	 *            the settings object that will determine the interval size.
-	 * @return a new interval.
-	 */
-	public static final Interval getIntervalWithTime( final ImgPlus< ? > img, final Settings settings )
-	{
-		final long[] max = new long[ img.numDimensions() ];
-		final long[] min = new long[ img.numDimensions() ];
+	
 
-		// X, we must have it.
-		final int xindex = img.dimensionIndex( Axes.X );
-		min[ xindex ] = settings.xstart;
-		max[ xindex ] = settings.xend;
-
-		// Y, we must have it.
-		final int yindex = img.dimensionIndex( Axes.Y );
-		min[ yindex ] = settings.ystart;
-		max[ yindex ] = settings.yend;
-
-		// Z, we MIGHT have it.
-		final int zindex = img.dimensionIndex( Axes.Z );
-		if ( zindex >= 0 )
-		{
-			min[ zindex ] = settings.zstart;
-			max[ zindex ] = settings.zend;
-		}
-
-		// TIME, we might have it, but anyway we leave the start & end
-		// management to elsewhere.
-		final int tindex = img.dimensionIndex( Axes.TIME );
-		if ( tindex >= 0 )
-		{
-			min[ tindex ] = settings.tstart;
-			max[ tindex ] = settings.tend;
-		}
-
-		// CHANNEL, we might have it, we drop it.
-		final long[] max2;
-		final long[] min2;
-		final int cindex = img.dimensionIndex( Axes.CHANNEL );
-		if ( cindex >= 0 )
-		{
-			max2 = new long[ img.numDimensions() - 1 ];
-			min2 = new long[ img.numDimensions() - 1 ];
-			int d2 = 0;
-			for ( int d = 0; d < min.length; d++ )
-			{
-				if ( d != cindex )
-				{
-					min2[ d2 ] = min[ d ];
-					max2[ d2 ] = max[ d ];
-					d2++;
-				}
-			}
-		}
-		else
-		{
-			max2 = max;
-			min2 = min;
-		}
-
-		final FinalInterval interval = new FinalInterval( min2, max2 );
-		return interval;
-	}
-
-	/**
-	 * Returns an interval object that in the specified {@link ImgPlus} <b>slice
-	 * in a single time frame</b>.
-	 * <p>
-	 * The specified {@link Settings} object is used to determine a crop-cube
-	 * that will determine the X,Y,Z size of the interval. A single channel will
-	 * be taken in the case of a multi-channel image. If the detector set in the
-	 * settings object has a parameter for the target channel
-	 * {@link fiji.plugin.trackmate.detection.DetectorKeys#KEY_TARGET_CHANNEL},
-	 * it will be used; otherwise the first channel will be taken.
-	 * <p>
-	 * If the specified {@link ImgPlus} has a time axis, it will be dropped and
-	 * the returned interval will have one dimension less.
-	 *
-	 * @param img
-	 *            the source image into which the interval is to be defined.
-	 * @param settings
-	 *            the settings object that will determine the interval size.
-	 * @return a new interval.
-	 */
-	public static final Interval getInterval( final ImgPlus< ? > img, final Settings settings )
-	{
-		final long[] max = new long[ img.numDimensions() ];
-		final long[] min = new long[ img.numDimensions() ];
-
-		// X, we must have it.
-		final int xindex = img.dimensionIndex( Axes.X );
-		min[ xindex ] = settings.xstart;
-		max[ xindex ] = settings.xend;
-
-		// Y, we must have it.
-		final int yindex = img.dimensionIndex( Axes.Y );
-		min[ yindex ] = settings.ystart;
-		max[ yindex ] = settings.yend;
-
-		// Z, we MIGHT have it.
-		final int zindex = img.dimensionIndex( Axes.Z );
-		if ( zindex >= 0 )
-		{
-			min[ zindex ] = settings.zstart;
-			max[ zindex ] = settings.zend;
-		}
-
-		// CHANNEL, we might have it.
-		final int cindex = img.dimensionIndex( Axes.CHANNEL );
-		if ( cindex >= 0 )
-		{
-			Integer c = ( Integer ) settings.detectorSettings.get( KEY_TARGET_CHANNEL ); // 1-based.
-			if ( null == c )
-				c = 1;
-
-			min[ cindex ] = c - 1; // 0-based.
-			max[ cindex ] = min[ cindex ];
-		}
-
-		// TIME, we might have it, but anyway we leave the start & end
-		// management to elsewhere.
-		final int tindex = img.dimensionIndex( Axes.TIME );
-
-		/*
-		 * We want to exclude time (if we have it) from out interval and source,
-		 * so that we can provide the detector instance with a hyperslice that
-		 * does NOT have time as a dimension.
-		 */
-		final long[] intervalMin;
-		final long[] intervalMax;
-		if ( tindex >= 0 )
-		{
-			intervalMin = new long[ min.length - 1 ];
-			intervalMax = new long[ min.length - 1 ];
-			int nindex = -1;
-			for ( int d = 0; d < min.length; d++ )
-			{
-				if ( d == tindex )
-					continue;
-
-				nindex++;
-				intervalMin[ nindex ] = Math.max( 0l, min[ d ] );
-				intervalMax[ nindex ] = Math.min( img.max( d ), max[ d ] );
-			}
-		}
-		else
-		{
-			intervalMin = min;
-			intervalMax = max;
-		}
-		final FinalInterval interval = new FinalInterval( intervalMin, intervalMax );
-		return interval;
-	}
+	
 
 	/** Obtains the SciJava {@link Context} in use by ImageJ. */
 	public static Context getContext() {

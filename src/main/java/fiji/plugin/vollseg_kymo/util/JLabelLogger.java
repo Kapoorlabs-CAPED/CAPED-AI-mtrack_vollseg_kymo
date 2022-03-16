@@ -21,14 +21,14 @@
  */
 package fiji.plugin.vollseg_kymo.util;
 
-import static fiji.plugin.trackmate.gui.Fonts.SMALL_FONT;
+import static fiji.plugin.vollseg_kymo.gui.Fonts.SMALL_FONT;
 
 import java.awt.Color;
 
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 
-import fiji.plugin.trackmate.Logger;
+import fiji.plugin.vollseg_kymo.Logger;
 
 public class JLabelLogger extends JLabel
 {

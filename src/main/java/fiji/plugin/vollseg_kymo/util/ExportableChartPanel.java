@@ -41,8 +41,8 @@ import org.jfree.chart.plot.XYPlot;
 
 import com.itextpdf.text.DocumentException;
 
-import fiji.plugin.trackmate.features.ModelDataset;
-import fiji.plugin.trackmate.gui.GuiUtils;
+import fiji.plugin.vollseg_kymo.features.ModelDataset;
+import fiji.plugin.vollseg_kymo.gui.GuiUtils;
 import ij.IJ;
 
 public class ExportableChartPanel extends ChartPanel
