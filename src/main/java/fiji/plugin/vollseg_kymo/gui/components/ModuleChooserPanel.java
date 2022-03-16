@@ -37,8 +37,8 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 
-import fiji.plugin.trackmate.TrackMateModule;
-import fiji.plugin.trackmate.providers.AbstractProvider;
+import fiji.plugin.vollseg_kymo.Mtrack_vollseg_kymo_module;
+import fiji.plugin.vollseg_kymo.providers.AbstractProvider;
 
 public class ModuleChooserPanel< K extends Mtrack_vollseg_kymo_module > extends JPanel
 {

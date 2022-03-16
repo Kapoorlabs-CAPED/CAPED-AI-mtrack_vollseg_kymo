@@ -23,23 +23,16 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-svggen/1.13/batik-svggen-1.13.jar" sourcepath="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-svggen/1.13/batik-svggen-1.13-sources.jar">
-		<attributes>
-			<attribute name="maven.pomderived" value="true"/>
-			<attribute name="maven.groupId" value="org.apache.xmlgraphics"/>
-			<attribute name="maven.artifactId" value="batik-svggen"/>
-			<attribute name="maven.version" value="1.13"/>
-			<attribute name="maven.scope" value="compile"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-dom/1.13/batik-dom-1.13.jar" sourcepath="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-dom/1.13/batik-dom-1.13-sources.jar">
-		<attributes>
-			<attribute name="maven.pomderived" value="true"/>
-			<attribute name="maven.groupId" value="org.apache.xmlgraphics"/>
-			<attribute name="maven.artifactId" value="batik-dom"/>
-			<attribute name="maven.version" value="1.13"/>
-			<attribute name="maven.scope" value="compile"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-awt-util/1.13/batik-awt-util-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-constants/1.13/batik-constants-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-css/1.13/batik-css-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-dom/1.13/batik-dom-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-ext/1.13/batik-ext-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-i18n/1.13/batik-i18n-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-shared-resources/1.13/batik-shared-resources-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-svggen/1.13/batik-svggen-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-util/1.13/batik-util-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/batik-xml/1.13/batik-xml-1.13.jar"/>
+	<classpathentry kind="lib" path="C:/Users/rando/.m2/repository/org/apache/xmlgraphics/xmlgraphics-commons/2.4/xmlgraphics-commons-2.4.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
