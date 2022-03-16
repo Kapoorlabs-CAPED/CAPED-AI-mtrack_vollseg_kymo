@@ -42,7 +42,7 @@ import javax.swing.JTextField;
 
 import fiji.plugin.vollseg_kymo.Model;
 import fiji.plugin.vollseg_kymo.Stat;
-import fiji.plugin.vollseg_kymo.visualization.TrackMateModelView;
+import fiji.plugin.vollseg_kymo.visualization.Mtrack_vollseg_kymo_model_view;
 
 @SuppressWarnings( "unchecked" )
 public class SearchBar extends JTextField
@@ -65,7 +65,7 @@ public class SearchBar extends JTextField
 
 	private final Model model;
 
-	private final TrackMateModelView view;
+	private final Mtrack_vollseg_kymo_model_view view;
 
 
 	/**
@@ -76,7 +76,7 @@ public class SearchBar extends JTextField
 	 * @param view
 	 *            the view to update when a stat is found.
 	 */
-	public SearchBar( final Model model, final TrackMateModelView view )
+	public SearchBar( final Model model, final Mtrack_vollseg_kymo_model_view view )
 	{
 		this.model = model;
 		this.view = view;

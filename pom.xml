@@ -80,7 +80,7 @@
 
 
 		<jfreesvg.version>3.3</jfreesvg.version>
-
+        <javaGeom.version>0.11.1</javaGeom.version>
 		<!-- NB: Deploy releases to the ImageJ Maven repository. -->
 		<releaseProfiles>deploy-to-imagej</releaseProfiles>
 	</properties>
@@ -172,6 +172,29 @@
 			<artifactId>jfreesvg</artifactId>
 			<version>${jfreesvg.version}</version>
 		</dependency>
+
+<dependency>
+			<groupId>org.jdom</groupId>
+			<artifactId>jdom2</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.jfree</groupId>
+			<artifactId>jfreechart</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.jgrapht</groupId>
+			<artifactId>jgrapht-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>math.geom2d</groupId>
+			<artifactId>javaGeom</artifactId>
+			<version>${javaGeom.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+		</dependency>
+
 	</dependencies>
 
 </project>
